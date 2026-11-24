@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 5: Dunder Protocols, Operator Overloading & Custom Containers - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 5: Dunder Protocols, Operator Overloading &amp; Custom Containers | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Implementing Python dunder protocols, operator overloading, reflected arithmetic, and custom collection containers cleanly." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 5: Dunder Protocols, Operator Overloading &amp; Custom Containers | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 5: Dunder Protocols, Operator Overloading &amp; Custom Containers</h2>
+                <div class="lead mb-4">
+                    Python integrates custom classes with built-in syntax such as <code>len()</code>, <code>in</code>, indexing, iteration, and arithmetic operators through <strong>dunder (double-underscore) protocols</strong>. Implementing these hooks thoughtfully makes domain objects feel native while preserving strict invariants.
+                </div>
+
+                <p><strong>What makes a protocol work well:</strong> Dunder methods should follow standard Python expectations rather than surprising callers. For example, <code>+</code> should return a new object rather than mutating an operand, and unsupported types should return <code>NotImplemented</code> so Python can try the reflected method or raise a clear <code>TypeError</code>.</p>
+
+                <p><strong>Custom containers vs. raw lists:</strong> Wrapping internal collections inside a custom container lets you enforce element types, support slicing or key lookups cleanly, and expose only valid container behaviors. (Reusable attribute descriptors and property lifecycle rules are covered separately in Chapter 6.)</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Protocol Area</th>
+                                <th scope="col">Key Dunder Methods</th>
+                                <th scope="col">Expected Behavior</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Representation</strong></td>
+                                <td><code>__repr__</code>, <code>__str__</code></td>
+                                <td><code>__repr__</code> aids debugging/logging; <code>__str__</code> formats human-friendly text</td>
+                                <td>Raising exceptions or relying on uninitialized fields inside string formatting</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Operator Overloading</strong></td>
+                                <td><code>__add__</code>, <code>__radd__</code>, <code>__mul__</code>, <code>__rmul__</code></td>
+                                <td>Returns a new instance; returns <code>NotImplemented</code> for incompatible operand types</td>
+                                <td>Silently mixing incompatible currencies or allowing <code>bool</code> as a numeric multiplier</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sequence &amp; Container</strong></td>
+                                <td><code>__len__</code>, <code>__getitem__</code>, <code>__contains__</code>, <code>__iter__</code></td>
+                                <td>Supports <code>len(box)</code>, indexing/slicing, <code>item in box</code>, and <code>for item in box</code></td>
+                                <td>Returning raw internal mutable lists that callers can alter outside validation</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Truthiness</strong></td>
+                                <td><code>__bool__</code>, <code>__len__</code></td>
+                                <td>Evaluates whether an object is non-empty or active in <code>if obj:</code> checks</td>
+                                <td>Defining conflicting truthiness rules that surprise callers expecting emptiness checks</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-braces me-2"></i>Core Principles of Protocols &amp; Containers</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Return <code>NotImplemented</code> for unknown operands:</strong> Returning <code>NotImplemented</code> from binary operators tells Python to test the right-hand operand's reflected method (such as <code>__rmul__</code>) before raising <code>TypeError</code>.</li>
+                            <li class="mb-2"><strong>Keep <code>__add__</code> pure and <code>__len__</code> non-negative:</strong> Arithmetic operators should produce new objects rather than mutating inputs, and <code>__len__</code> must return a non-negative <code>int</code>.</li>
+                            <li class="mb-2"><strong>Handle both integer indices and <code>slice</code> objects:</strong> When implementing <code>__getitem__</code>, check <code>isinstance(index_or_slice, slice)</code> so slicing works alongside single-item lookup.</li>
+                            <li class="mb-0"><strong>Guard internal collection state:</strong> Validate every element added to a custom container so invalid items never enter the collection.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">5.1 Operator Overloading and Reflected Operations</h4>
+                <p>Overloading arithmetic operators like <code>+</code> and <code>*</code> makes value-like objects ergonomic in expressions. Implementing both normal and reflected methods (such as <code>__mul__</code> and <code>__rmul__</code>) lets callers write either <code>price * 3</code> or <code>3 * price</code>.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from typing import Union
+
+class LedgerAmount:
+    """Money value supporting addition and scalar multiplication with strict checks."""
+
+    def __init__(self, amount_value: Union[Decimal, int, float, str], currency_code: str) -&gt; None:
+        """Initialize and validate a monetary amount and three-letter currency code."""
+        # Reject booleans explicitly because bool subclasses int.
+        if isinstance(amount_value, bool):
+            raise TypeError("Amount cannot be a boolean.")
+
+        # Convert supported input types into a Decimal.
+        try:
+            if isinstance(amount_value, Decimal):
+                parsed_value: Decimal = amount_value
+            elif isinstance(amount_value, (int, float, str)):
+                parsed_value = Decimal(str(amount_value).strip())
+            else:
+                raise TypeError("Amount must be a Decimal, int, float, or str.")
+        except InvalidOperation as parse_error:
+            raise ValueError(f"Invalid amount value: {amount_value}.") from parse_error
+
+        # Reject non-finite values like NaN or Infinity.
+        if not parsed_value.is_finite():
+            raise ValueError("Amount must be a finite number.")
+
+        # Ensure currency code is a string.
+        if not isinstance(currency_code, str):
+            raise TypeError("Currency code must be a string.")
+
+        # Trim and uppercase the currency code.
+        normalized_currency: str = currency_code.strip().upper()
+
+        # Require a three-letter alphabetic code.
+        if len(normalized_currency) != 3 or not normalized_currency.isalpha():
+            raise ValueError("Currency code must be a three-letter alphabetic code.")
+
+        # Round to two decimals and store fields.
+        self._amount: Decimal = parsed_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self._currency: str = normalized_currency
+
+    @property
+    def amount(self) -&gt; Decimal:
+        """Return the rounded monetary amount."""
+        # Return the stored Decimal amount.
+        return self._amount
+
+    @property
+    def currency(self) -&gt; str:
+        """Return the normalized currency code."""
+        # Return the stored currency code.
+        return self._currency
+
+    def __repr__(self) -&gt; str:
+        """Return an unambiguous developer representation."""
+        # Format constructor arguments for debugging.
+        return f"LedgerAmount(amount_value={str(self._amount)!r}, currency_code={self._currency!r})"
+
+    def __str__(self) -&gt; str:
+        """Return a readable display string for amounts."""
+        # Format amount and currency for display.
+        return f"{self._amount} {self._currency}"
+
+    def __add__(self, operand: object) -&gt; "LedgerAmount":
+        """Add two LedgerAmount instances with matching currencies."""
+        # Defer to Python if operand is not a LedgerAmount.
+        if not isinstance(operand, LedgerAmount):
+            return NotImplemented
+
+        # Block addition across different currencies.
+        if self._currency != operand._currency:
+            raise ValueError(
+                f"Cannot add currency '{operand._currency}' to '{self._currency}'."
+            )
+
+        # Return a new summed LedgerAmount.
+        return LedgerAmount(self._amount + operand._amount, self._currency)
+
+    def __mul__(self, multiplier: object) -&gt; "LedgerAmount":
+        """Multiply a LedgerAmount by a non-boolean integer or Decimal multiplier."""
+        # Reject booleans because bool subclasses int.
+        if isinstance(multiplier, bool):
+            raise TypeError("Multiplier cannot be a boolean.")
+
+        # Scale amount by a non-negative integer or finite Decimal.
+        if isinstance(multiplier, int):
+            if multiplier &lt; 0:
+                raise ValueError("Multiplier cannot be negative.")
+
+            scaled_amount: Decimal = self._amount * Decimal(multiplier)
+        elif isinstance(multiplier, Decimal):
+            if not multiplier.is_finite():
+                raise ValueError("Multiplier must be finite.")
+
+            if multiplier &lt; Decimal("0"):
+                raise ValueError("Multiplier cannot be negative.")
+
+            scaled_amount = self._amount * multiplier
+        else:
+            # Defer to reflected multiplication or TypeError.
+            return NotImplemented
+
+        # Return a new scaled LedgerAmount.
+        return LedgerAmount(scaled_amount, self._currency)
+
+    def __rmul__(self, multiplier: object) -&gt; "LedgerAmount":
+        """Support reversed scalar multiplication such as 3 * amount."""
+        # Reuse __mul__ validation and scaling logic.
+        return self.__mul__(multiplier)
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create an amount and test forward and reflected multiplication plus addition.
+    unit_fee: LedgerAmount = LedgerAmount("12.50", "cad")
+
+    triple_fee: LedgerAmount = unit_fee * 3
+    double_from_left: LedgerAmount = 2 * unit_fee
+    combined_total: LedgerAmount = triple_fee + double_from_left
+
+    # Print formatted outputs.
+    print(repr(unit_fee))
+    print("Combined total:", str(combined_total))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">5.2 Building a Custom Container with Sequence Protocols</h4>
+                <p>A custom container encapsulates an internal collection so callers can use familiar idioms <code>len(manifest)</code>, <code>item in manifest</code>, <code>manifest[0]</code>, slicing, and <code>for item in manifest</code> while enforcing element rules at every entry point.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Iterator, Optional, Union
+
+class PackageManifest:
+    """Validated container storing normalized tracking codes for a shipment batch."""
+
+    def __init__(self, tracking_codes: Optional[list[str]] = None) -&gt; None:
+        """Initialize an empty or pre-populated manifest of normalized tracking codes."""
+        # Create a private list for stored codes.
+        self._codes: list[str] = []
+
+        # Validate and add any initial codes.
+        if tracking_codes is not None:
+            if not isinstance(tracking_codes, list):
+                raise TypeError("Initial tracking_codes must be a list of strings.")
+
+            for raw_code in tracking_codes:
+                self.append_code(raw_code)
+
+    @staticmethod
+    def _normalize_code(raw_code: object) -&gt; str:
+        """Validate and normalize a single tracking code string."""
+        # Reject non-string codes.
+        if not isinstance(raw_code, str):
+            raise TypeError("Tracking code must be a string.")
+
+        # Trim and uppercase the code.
+        cleaned_code: str = raw_code.strip().upper()
+
+        # Reject blank codes.
+        if not cleaned_code:
+            raise ValueError("Tracking code cannot be blank.")
+
+        # Return normalized code.
+        return cleaned_code
+
+    def append_code(self, raw_code: str) -&gt; None:
+        """Validate and append a normalized tracking code to the manifest."""
+        # Normalize and append the code.
+        normalized_code: str = self._normalize_code(raw_code)
+
+        self._codes.append(normalized_code)
+
+    def __len__(self) -&gt; int:
+        """Return the number of tracking codes in the manifest."""
+        # Return stored code count.
+        return len(self._codes)
+
+    def __bool__(self) -&gt; bool:
+        """Return True when the manifest contains at least one tracking code."""
+        # Check if any codes are stored.
+        return len(self._codes) &gt; 0
+
+    def __contains__(self, candidate: object) -&gt; bool:
+        """Support 'in' membership checks using normalized code matching."""
+        # Reject non-string lookup targets.
+        if not isinstance(candidate, str):
+            return False
+
+        # Normalize target and check membership.
+        normalized_target: str = candidate.strip().upper()
+
+        return normalized_target in self._codes
+
+    def __getitem__(self, index_or_slice: Union[int, slice]) -&gt; Union[str, list[str]]:
+        """Support integer indexing and slice access over stored tracking codes."""
+        # Return a new list copy for slices.
+        if isinstance(index_or_slice, slice):
+            return list(self._codes[index_or_slice])
+
+        # Reject booleans and non-integer indices.
+        if isinstance(index_or_slice, bool) or not isinstance(index_or_slice, int):
+            raise TypeError("Index must be an integer or slice.")
+
+        # Return item at index.
+        return self._codes[index_or_slice]
+
+    def __iter__(self) -&gt; Iterator[str]:
+        """Yield tracking codes in insertion order."""
+        # Yield an iterator over stored codes.
+        return iter(self._codes)
+
+    def __repr__(self) -&gt; str:
+        """Return a clear representation of the manifest."""
+        # Format manifest state for debugging.
+        return f"PackageManifest(tracking_codes={self._codes!r})"
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create a manifest, append a code, and test container protocols.
+    manifest: PackageManifest = PackageManifest([" trk-101 ", "trk-102"])
+
+    manifest.append_code(" trk-103 ")
+
+    # Verify length, truthiness, membership, indexing, and iteration.
+    print("Count:", len(manifest))
+    print("Non-empty:", bool(manifest))
+    print("Has TRK-102:", " trk-102 " in manifest)
+    print("First item:", manifest[0])
+    print("Slice [1:]:", manifest[1:])
+
+    for entry in manifest:
+        print("Entry:", entry)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">5.3 Custom Mapping-Style Container with Key Normalization</h4>
+                <p>For dictionary-like collections, implementing <code>__getitem__</code>, <code>__setitem__</code>, <code>__delitem__</code>, <code>__contains__</code>, and <code>__len__</code> lets you normalize keys consistently while keeping value invariants intact.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Iterator
+
+class CaseInsensitiveQuotaStore:
+    """Mapping-style container with normalized uppercase keys and non-negative counts."""
+
+    def __init__(self) -&gt; None:
+        """Initialize an empty internal dictionary for quota entries."""
+        # Initialize private quota mapping.
+        self._quotas: dict[str, int] = {}
+
+    @staticmethod
+    def _normalize_key(raw_key: object) -&gt; str:
+        """Validate and normalize a quota key into an uppercase string."""
+        # Reject non-string keys.
+        if not isinstance(raw_key, str):
+            raise TypeError("Quota key must be a string.")
+
+        # Trim and uppercase the key.
+        cleaned_key: str = raw_key.strip().upper()
+
+        # Reject blank keys.
+        if not cleaned_key:
+            raise ValueError("Quota key cannot be blank.")
+
+        # Return normalized key.
+        return cleaned_key
+
+    @staticmethod
+    def _validate_quota(raw_quota: object) -&gt; int:
+        """Validate that quota value is a non-negative non-boolean integer."""
+        # Reject booleans and non-integers.
+        if isinstance(raw_quota, bool) or not isinstance(raw_quota, int):
+            raise TypeError("Quota value must be a non-boolean integer.")
+
+        # Reject negative quota values.
+        if raw_quota &lt; 0:
+            raise ValueError("Quota value cannot be negative.")
+
+        # Return validated quota.
+        return raw_quota
+
+    def __setitem__(self, raw_key: str, raw_quota: int) -&gt; None:
+        """Set or update a quota entry using a normalized key and validated count."""
+        # Normalize key, validate quota, and store entry.
+        normalized_key: str = self._normalize_key(raw_key)
+        validated_quota: int = self._validate_quota(raw_quota)
+
+        self._quotas[normalized_key] = validated_quota
+
+    def __getitem__(self, raw_key: str) -&gt; int:
+        """Retrieve the quota count for a normalized key."""
+        # Look up normalized key or raise KeyError.
+        normalized_key: str = self._normalize_key(raw_key)
+
+        if normalized_key not in self._quotas:
+            raise KeyError(f"Unknown quota key: {normalized_key}.")
+
+        # Return stored quota count.
+        return self._quotas[normalized_key]
+
+    def __delitem__(self, raw_key: str) -&gt; None:
+        """Delete an existing quota entry by normalized key."""
+        # Remove normalized key or raise KeyError.
+        normalized_key: str = self._normalize_key(raw_key)
+
+        if normalized_key not in self._quotas:
+            raise KeyError(f"Cannot delete missing quota key: {normalized_key}.")
+
+        # Delete entry from mapping.
+        del self._quotas[normalized_key]
+
+    def __contains__(self, raw_key: object) -&gt; bool:
+        """Check whether a normalized key exists in the quota store."""
+        # Reject non-string keys during lookup.
+        if not isinstance(raw_key, str):
+            return False
+
+        # Trim and uppercase key for check.
+        cleaned_key: str = raw_key.strip().upper()
+
+        # Reject blank keys.
+        if not cleaned_key:
+            return False
+
+        # Check key presence.
+        return cleaned_key in self._quotas
+
+    def __len__(self) -&gt; int:
+        """Return the number of stored quota entries."""
+        # Return entry count.
+        return len(self._quotas)
+
+    def __iter__(self) -&gt; Iterator[str]:
+        """Iterate over normalized quota keys."""
+        # Yield keys from internal mapping.
+        return iter(self._quotas)
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Populate and query the custom quota store using mixed-case keys.
+    store: CaseInsensitiveQuotaStore = CaseInsensitiveQuotaStore()
+
+    store[" api_calls "] = 1000
+    store["storage_gb"] = 50
+
+    print("API calls:", store["API_CALLS"])
+    print("Has storage_gb:", "  STORAGE_GB " in store)
+    print("Total keys:", len(store))
+
+    del store["api_calls"]
+    
+    print("Remaining keys:", list(store))</code></pre>
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_04.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Data Classes &amp; Value Objects
+                </a>
+                <a href="chapter_06.html" class="btn btn-primary btn-sm">
+                    Chapter 6 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

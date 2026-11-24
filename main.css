@@ -1,0 +1,351 @@
+:root {
+    --dark: #22272e;
+    --light: #ffffff;
+    --dark-text: #adbac7;
+    --light-text: #24292f;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+    --dark-surface: #2d333b;
+    --dark-surface-hover: #373e47;
+    --dark-border: #444c56;
+    --dark-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+    --light-surface: #f6f8fa;
+    --light-surface-hover: #eaeef2;
+    --light-border: #d0d7de;
+    --light-card-shadow: 0 3px 10px rgba(31, 35, 40, 0.04);
+
+    --link: #2b8fe0;
+
+    color-scheme: light dark;
+}
+
+/* Light mode tokens when OS prefers light and no explicit dark mode is active */
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]):not([data-bs-theme="dark"]):not(.theme-dark) {
+        --page-bg: var(--light);
+        --page-text: var(--light-text);
+        --header-bg: radial-gradient(circle at 50% 0%, #ffffff 0%, #f0f3f6 80%);
+        --header-border: var(--light-border);
+        --header-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+        --muted-text: #57606a;
+        --surface-bg: var(--light-surface);
+        --surface-hover: var(--light-surface-hover);
+        --border-color: var(--light-border);
+        --card-shadow: var(--light-card-shadow);
+        --item-bg: #ffffff;
+        --item-hover-shadow: 0 6px 20px rgba(31, 35, 40, 0.08);
+        --heading-text: var(--light-text);
+        --footer-bg: #f6f8fa;
+
+        --active-code-bg: #eaeef2;
+        --active-code-fg: #1f2328;
+        --active-code-border: #d0d7de;
+        --tok-comment: #57606a;
+        --tok-keyword: #cf222e;
+        --tok-operator: #cf222e;
+        --tok-string: #0a3069;
+        --tok-func: #8250df;
+        --tok-class: #953800;
+        --tok-type-hint: #116329;
+        --tok-number: #0550ae;
+        --tok-boolean: #cf222e;
+        --tok-builtin: #116329;
+        --tok-decorator: #8250df;
+    }
+}
+
+/* Dark mode tokens when OS prefers dark and no explicit light mode is active */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-bs-theme="light"]):not(.theme-light) {
+        --page-bg: var(--dark);
+        --page-text: var(--dark-text);
+        --header-bg: radial-gradient(circle at 50% 0%, #2d333b 0%, #1c2128 70%);
+        --header-border: var(--dark-border);
+        --header-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+        --muted-text: #8b949e;
+        --surface-bg: var(--dark-surface);
+        --surface-hover: var(--dark-surface-hover);
+        --border-color: var(--dark-border);
+        --card-shadow: var(--dark-card-shadow);
+        --item-bg: var(--dark-surface);
+        --item-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        --heading-text: #ffffff;
+        --footer-bg: #1c2128;
+
+        --active-code-bg: #22272e;
+        --active-code-fg: #adbac7;
+        --active-code-border: #373e47;
+        --tok-comment: #768390;
+        --tok-keyword: #f47067;
+        --tok-operator: #f47067;
+        --tok-string: #96d0ff;
+        --tok-func: #dcbdfb;
+        --tok-class: #ffa657;
+        --tok-type-hint: #8ddb8c;
+        --tok-number: #6cb6ff;
+        --tok-boolean: #f47067;
+        --tok-builtin: #8ddb8c;
+        --tok-decorator: #dcbdfb;
+    }
+}
+
+/* Explicit light theme override */
+[data-theme="light"],
+[data-bs-theme="light"],
+.theme-light {
+    color-scheme: light;
+    --page-bg: var(--light);
+    --page-text: var(--light-text);
+    --header-bg: radial-gradient(circle at 50% 0%, #ffffff 0%, #f0f3f6 80%);
+    --header-border: var(--light-border);
+    --header-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+    --muted-text: #57606a;
+    --surface-bg: var(--light-surface);
+    --surface-hover: var(--light-surface-hover);
+    --border-color: var(--light-border);
+    --card-shadow: var(--light-card-shadow);
+    --item-bg: #ffffff;
+    --item-hover-shadow: 0 6px 20px rgba(31, 35, 40, 0.08);
+    --heading-text: var(--light-text);
+    --footer-bg: #f6f8fa;
+
+    --active-code-bg: #eaeef2;
+    --active-code-fg: #1f2328;
+    --active-code-border: #d0d7de;
+    --tok-comment: #57606a;
+    --tok-keyword: #cf222e;
+    --tok-operator: #cf222e;
+    --tok-string: #0a3069;
+    --tok-func: #8250df;
+    --tok-class: #953800;
+    --tok-type-hint: #116329;
+    --tok-number: #0550ae;
+    --tok-boolean: #cf222e;
+    --tok-builtin: #116329;
+    --tok-decorator: #8250df;
+}
+
+/* Explicit dark theme override */
+[data-theme="dark"],
+[data-bs-theme="dark"],
+.theme-dark {
+    color-scheme: dark;
+    --page-bg: var(--dark);
+    --page-text: var(--dark-text);
+    --header-bg: radial-gradient(circle at 50% 0%, #2d333b 0%, #1c2128 70%);
+    --header-border: var(--dark-border);
+    --header-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    --muted-text: #8b949e;
+    --surface-bg: var(--dark-surface);
+    --surface-hover: var(--dark-surface-hover);
+    --border-color: var(--dark-border);
+    --card-shadow: var(--dark-card-shadow);
+    --item-bg: var(--dark-surface);
+    --item-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --heading-text: #ffffff;
+    --footer-bg: #1c2128;
+
+    --active-code-bg: #22272e;
+    --active-code-fg: #adbac7;
+    --active-code-border: #373e47;
+    --tok-comment: #768390;
+    --tok-keyword: #f47067;
+    --tok-operator: #f47067;
+    --tok-string: #96d0ff;
+    --tok-func: #dcbdfb;
+    --tok-class: #ffa657;
+    --tok-type-hint: #8ddb8c;
+    --tok-number: #6cb6ff;
+    --tok-boolean: #f47067;
+    --tok-builtin: #8ddb8c;
+    --tok-decorator: #dcbdfb;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+    background-color: var(--page-bg, light-dark(#ffffff, #22272e));
+    color: var(--page-text, light-dark(#24292f, #adbac7));
+}
+
+.content-container {
+    max-width: 860px;
+}
+
+.book-logo {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    transition: transform 0.3s ease;
+}
+
+.book-logo:hover {
+    transform: scale(1.05);
+}
+
+.book-header {
+    background: var(--header-bg, radial-gradient(circle at 50% 0%, #ffffff 0%, #f0f3f6 80%));
+    border-bottom: 1px solid var(--header-border, #d0d7de);
+    box-shadow: var(--header-shadow, inset 0 -1px 0 rgba(0, 0, 0, 0.02));
+}
+
+.book-subtitle {
+    color: var(--muted-text, #57606a);
+    font-weight: 400;
+}
+
+.author-card {
+    background-color: var(--surface-bg, #f6f8fa);
+    border: 1px solid var(--border-color, #d0d7de);
+    box-shadow: var(--card-shadow, 0 3px 10px rgba(31, 35, 40, 0.04));
+}
+
+.author-link {
+    color: var(--link);
+    font-weight: 500;
+}
+
+.author-link:hover {
+    color: var(--link);
+    text-decoration: underline !important;
+}
+
+.part-title {
+    color: var(--link);
+    border-bottom: 2px solid var(--border-color, #d0d7de);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    padding-bottom: 0.5rem;
+}
+
+.chapter-group {
+    border: 1px solid var(--border-color, #d0d7de);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow, 0 3px 10px rgba(31, 35, 40, 0.04));
+}
+
+.list-group-item {
+    background-color: var(--item-bg, #ffffff);
+    border-color: var(--border-color, #d0d7de) !important;
+    color: var(--page-text, #24292f);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 1.25rem 1.5rem !important;
+}
+
+.list-group-item:not(:last-child) {
+    border-bottom: 1px solid inherit;
+}
+
+.list-group-item:hover {
+    background-color: var(--surface-hover, #eaeef2);
+    transform: translateY(-1px);
+    box-shadow: var(--item-hover-shadow, 0 6px 20px rgba(31, 35, 40, 0.08));
+    z-index: 2;
+}
+
+.chapter-title {
+    color: var(--heading-text, #24292f);
+    letter-spacing: -0.01em;
+}
+
+.chapter-desc {
+    color: var(--muted-text, #57606a);
+}
+
+.site-footer {
+    background-color: var(--footer-bg, #f6f8fa);
+    border-top: 1px solid var(--border-color, #d0d7de);
+    color: var(--muted-text, #57606a);
+}
+
+/* Syntax highlighting styles */
+pre[class*="language-"] {
+    background-color: var(--active-code-bg, #eaeef2);
+    color: var(--active-code-fg, #1f2328);
+    border: 1px solid var(--active-code-border, #d0d7de);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin: 0 0 1rem 0;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+code[class*="language-"],
+pre[class*="language-"] .token.punctuation {
+    background: transparent;
+    color: var(--active-code-fg, #1f2328);
+    text-shadow: none;
+}
+
+pre[class*="language-"] .token.comment,
+pre[class*="language-"] .token.prolog,
+pre[class*="language-"] .token.doctype,
+pre[class*="language-"] .token.cdata {
+    color: var(--tok-comment, #57606a);
+    font-style: italic;
+}
+
+pre[class*="language-"] .token.keyword,
+pre[class*="language-"] .token.atrule,
+pre[class*="language-"] .token.attr-rule {
+    color: var(--tok-keyword, #cf222e);
+}
+
+pre[class*="language-"] .token.operator {
+    color: var(--tok-operator, #cf222e);
+}
+
+pre[class*="language-"] .token.string,
+pre[class*="language-"] .token.char,
+pre[class*="language-"] .token.attr-value,
+pre[class*="language-"] .token.regex,
+pre[class*="language-"] .token.variable {
+    color: var(--tok-string, #0a3069);
+}
+
+pre[class*="language-"] .token.function,
+pre[class*="language-"] .token.method {
+    color: var(--tok-func, #8250df);
+}
+
+pre[class*="language-"] .token.class-name {
+    color: var(--tok-class, #953800);
+}
+
+pre[class*="language-"] .token.type-hint {
+    color: var(--tok-type-hint, #116329);
+    font-weight: 500;
+}
+
+pre[class*="language-"] .token.number,
+pre[class*="language-"] .token.constant,
+pre[class*="language-"] .token.symbol,
+pre[class*="language-"] .token.deleted {
+    color: var(--tok-number, #0550ae);
+}
+
+pre[class*="language-"] .token.boolean {
+    color: var(--tok-boolean, #cf222e);
+}
+
+pre[class*="language-"] .token.builtin,
+pre[class*="language-"] .token.selector,
+pre[class*="language-"] .token.important,
+pre[class*="language-"] .token.tag,
+pre[class*="language-"] .token.property {
+    color: var(--tok-builtin, #116329);
+}
+
+pre[class*="language-"] .token.decorator {
+    color: var(--tok-decorator, #8250df);
+}

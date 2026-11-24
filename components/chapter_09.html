@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 9: Abstract Base Classes & Structural Protocols - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 9: Abstract Base Classes &amp; Structural Protocols | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Defining explicit interfaces with ABC and @abstractmethod alongside structural typing with typing.Protocol in Python." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 9: Abstract Base Classes &amp; Structural Protocols | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 9: Abstract Base Classes &amp; Structural Protocols</h2>
+                <div class="lead mb-4">
+                    When composing objects or building pluggable components, you often care about <em>what capabilities an object provides</em> rather than its entire concrete class tree. Python supports both <strong>Abstract Base Classes (ABCs)</strong> for nominal inheritance contracts and <strong><code>typing.Protocol</code></strong> for structural ("duck typing") interfaces.
+                </div>
+
+                <p><strong>ABCs vs. structural protocols:</strong> An ABC requires subclasses to inherit explicitly and prevents instantiation until all <code>@abstractmethod</code> hooks are implemented. A <code>Protocol</code> checks whether an object satisfies the required method or attribute signatures structurally, even across unrelated classes.</p>
+
+                <p><strong>Why both matter in real codebases:</strong> ABCs shine when a family of classes shares base helpers and explicit hierarchy guarantees, while <code>Protocol</code> shines when decoupling callers from concrete implementations or third-party types.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Interface Style</th>
+                                <th scope="col">Mechanism / Syntax</th>
+                                <th scope="col">Primary Strength</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Abstract Base Class</strong></td>
+                                <td><code>class Base(ABC):</code> + <code>@abstractmethod</code></td>
+                                <td>Blocks incomplete subclasses at instantiation time and shares base code</td>
+                                <td>Over-constraining unrelated classes into a forced inheritance tree</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Structural Protocol</strong></td>
+                                <td><code>class Exporter(Protocol):</code></td>
+                                <td>Decouples callers structurally without forcing base-class inheritance</td>
+                                <td>Assuming <code>isinstance(..., Protocol)</code> checks method bodies or runtime types at runtime</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Runtime Checkable</strong></td>
+                                <td><code>@runtime_checkable</code></td>
+                                <td>Allows <code>isinstance()</code> checks for presence of required attributes/methods</td>
+                                <td>Relying solely on <code>isinstance()</code> when argument/return types also matter</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Shared Guard Helpers</strong></td>
+                                <td>Concrete helper methods on an ABC</td>
+                                <td>Centralizes input validation before calling abstract implementation hooks</td>
+                                <td>Duplicating validation rules across every concrete implementation</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-puzzle me-2"></i>Core Principles of ABCs &amp; Structural Protocols</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Use <code>@abstractmethod</code> to enforce required contracts:</strong> Any concrete subclass that omits an abstract method raises <code>TypeError</code> when instantiated.</li>
+                            <li class="mb-2"><strong>Keep method signatures and invariants aligned:</strong> Implementations must honor the expected parameter types, return values, and domain invariants of the interface.</li>
+                            <li class="mb-2"><strong>Use <code>Protocol</code> to invert dependencies cleanly:</strong> High-level services can depend on a narrow <code>Protocol</code> rather than concrete classes, making testing and extension straightforward.</li>
+                            <li class="mb-0"><strong>Validate runtime inputs defensively:</strong> Type checkers catch mismatches statically, while explicit runtime checks protect boundaries against dynamic or untyped callers.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">9.1 Abstract Base Classes with Shared Validation</h4>
+                <p>An <code>ABC</code> can pair shared validation logic in a concrete method with a required <code>@abstractmethod</code> hook that every subclass must implement.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from abc import ABC, abstractmethod
+from decimal import Decimal, InvalidOperation
+
+class TaxRule(ABC):
+    """Abstract base class defining a validated tax calculation contract."""
+
+    @staticmethod
+    def _validate_subtotal(subtotal: object) -> Decimal:
+        """Validate and normalize a non-negative finite Decimal subtotal."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(subtotal, bool):
+            raise TypeError("Subtotal cannot be a boolean.")
+
+        # Convert Decimal or string/numeric inputs into a Decimal safely.
+        try:
+            parsed_subtotal: Decimal = (
+                subtotal
+                if isinstance(subtotal, Decimal)
+                else Decimal(str(subtotal).strip())
+            )
+        except (InvalidOperation, TypeError) as parse_error:
+            raise ValueError(f"Invalid subtotal amount: {subtotal}.") from parse_error
+
+        # Reject NaN, Infinity, or negative subtotals.
+        if not parsed_subtotal.is_finite() or parsed_subtotal < Decimal("0.00"):
+            raise ValueError("Subtotal must be a finite non-negative Decimal.")
+
+        # Return validated Decimal subtotal.
+        return parsed_subtotal
+
+    def compute_tax(self, subtotal: object) -> Decimal:
+        """Validate subtotal first, then delegate tax math to the subclass rule."""
+        # Enforce shared subtotal validation before invoking concrete tax logic.
+        validated_subtotal: Decimal = self._validate_subtotal(subtotal)
+
+        # Delegate tax math to the subclass implementation.
+        return self._calculate_tax_amount(validated_subtotal)
+
+    @abstractmethod
+    def _calculate_tax_amount(self, subtotal: Decimal) -> Decimal:
+        """Calculate tax for a validated non-negative Decimal subtotal."""
+        # Subclasses must implement this method to be instantiable.
+        raise NotImplementedError
+
+class FlatRateTaxRule(TaxRule):
+    """Concrete tax rule applying a fixed percentage rate to a validated subtotal."""
+
+    def __init__(self, tax_rate: Decimal) -> None:
+        """Initialize and validate a non-negative finite tax rate."""
+        # Reject booleans and non-Decimal rates defensively.
+        if isinstance(tax_rate, bool) or not isinstance(tax_rate, Decimal):
+            raise TypeError("tax_rate must be a Decimal.")
+
+        # Reject NaN, Infinity, or negative tax rates.
+        if not tax_rate.is_finite() or tax_rate < Decimal("0.00"):
+            raise ValueError("tax_rate must be a finite non-negative Decimal.")
+
+        # Store validated tax rate on the instance.
+        self._tax_rate: Decimal = tax_rate
+
+    def _calculate_tax_amount(self, validated_subtotal: Decimal) -> Decimal:
+        """Compute tax by multiplying validated subtotal by the tax rate."""
+        # Multiply validated subtotal by the instance tax rate.
+        return validated_subtotal * self._tax_rate
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Compute tax on a validated subtotal using a concrete TaxRule subclass.
+    ontario_hst_rule: FlatRateTaxRule = FlatRateTaxRule(Decimal("0.13"))
+    tax_due: Decimal = ontario_hst_rule.compute_tax(Decimal("120.00"))
+
+    print("Tax due:", tax_due)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">9.2 Structural Protocols with <code>typing.Protocol</code></h4>
+                <p>A <code>Protocol</code> specifies the methods or attributes a collaborator must provide without requiring those classes to inherit from a shared base class.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class SummaryFormatter(Protocol):
+    """Structural protocol for objects capable of formatting a record summary."""
+
+    def format_summary(self, record_code: str, item_total: int) -&gt; str:
+        """Return a formatted summary string for a record code and item count."""
+        ...
+
+class PlainTextSummaryFormatter:
+    """Standalone formatter matching SummaryFormatter structurally without subclassing."""
+
+    def format_summary(self, record_code: str, item_total: int) -&gt; str:
+        """Format a compact single-line summary after validating inputs."""
+        # Reject non-string record codes defensively.
+        if not isinstance(record_code, str):
+            raise TypeError("record_code must be a string.")
+
+        # Normalize and reject blank record codes.
+        cleaned_code: str = record_code.strip().upper()
+        if not cleaned_code:
+            raise ValueError("record_code cannot be blank.")
+
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(item_total, bool) or not isinstance(item_total, int):
+            raise TypeError("item_total must be a non-boolean integer.")
+
+        # Reject negative item totals.
+        if item_total &lt; 0:
+            raise ValueError("item_total cannot be negative.")
+
+        # Return formatted summary text.
+        return f"{cleaned_code}: {item_total} items"
+
+class ShipmentReporter:
+    """Service depending structurally on any SummaryFormatter implementation."""
+
+    def __init__(self, formatter: SummaryFormatter) -&gt; None:
+        """Initialize reporter with an object providing format_summary."""
+        # Check callable attribute at runtime to guard dynamic callers.
+        if not hasattr(formatter, "format_summary") or not callable(formatter.format_summary):
+            raise TypeError("formatter must provide a callable format_summary method.")
+
+        # Store collaborator implementing the SummaryFormatter protocol.
+        self._formatter: SummaryFormatter = formatter
+
+    def build_report(self, record_code: str, item_total: int) -&gt; str:
+        """Delegate summary formatting to the configured formatter."""
+        # Delegate formatting directly to the protocol implementation.
+        return self._formatter.format_summary(record_code=record_code, item_total=item_total)
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Verify structural compatibility and build a summary report.
+    text_formatter: PlainTextSummaryFormatter = PlainTextSummaryFormatter()
+    reporter: ShipmentReporter = ShipmentReporter(formatter=text_formatter)
+
+    print("Matches protocol:", isinstance(text_formatter, SummaryFormatter))
+    print("Report:", reporter.build_report(" ord-508 ", 7))</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_08.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Inheritance, MRO &amp; Composition
+                </a>
+                <a href="chapter_10.html" class="btn btn-primary btn-sm">
+                    Chapter 10 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

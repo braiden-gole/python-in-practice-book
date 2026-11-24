@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 7: Context Manager Classes & Resource Lifecycles - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 7: Context Manager Classes &amp; Resource Lifecycles | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Implementing context manager classes with __enter__ and __exit__, deterministic cleanup, exception handling, and stateful resource lifecycles." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 7: Context Manager Classes &amp; Resource Lifecycles | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 7: Context Manager Classes &amp; Resource Lifecycles</h2>
+                <div class="lead mb-4">
+                    Many real-world operations acquire a resource, perform work inside a scoped block, and must release or roll back that resource even when an exception occurs. Writing <strong>context manager classes</strong> with <code>__enter__</code> and <code>__exit__</code> makes setup, teardown, and error handling deterministic and readable.
+                </div>
+
+                <p><strong>Why context manager classes shine:</strong> When a resource has state—such as an active transaction, a temporary workspace, or an acquired lock, a class-based context manager can hold lifecycle state cleanly and guarantee cleanup on every exit path.</p>
+
+                <p><strong>Understanding <code>__exit__</code> return values:</strong> Returning <code>False</code> (or <code>None</code>) from <code>__exit__</code> lets any exception raised inside the <code>with</code> block propagate after cleanup finishes; returning <code>True</code> suppresses the exception intentionally.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Lifecycle Hook</th>
+                                <th scope="col">Signature / Behavior</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Context Entry</strong></td>
+                                <td><code>def __enter__(self) -&gt; TargetType:</code></td>
+                                <td>Acquires or activates the resource and returns the object bound by <code>as</code></td>
+                                <td>Leaving half-initialized resources if setup fails partway through</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Context Exit</strong></td>
+                                <td><code>def __exit__(self, exc_type, exc_val, exc_tb) -&gt; bool:</code></td>
+                                <td>Releases resources, commits/rolls back state, and decides exception propagation</td>
+                                <td>Swallowing exceptions accidentally by returning <code>True</code> without a clear rule</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Resource State</strong></td>
+                                <td>Active flag / status guard</td>
+                                <td>Prevents using a closed or finalized resource outside its active scope</td>
+                                <td>Allowing writes or commits after the <code>with</code> block has already exited</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Idempotent Teardown</strong></td>
+                                <td>Guard against repeated cleanup</td>
+                                <td>Ensures closing or releasing twice never raises secondary errors</td>
+                                <td>Raising an <code>AttributeError</code> when cleaning up after a failed <code>__enter__</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-arrow-repeat me-2"></i>Core Principles of Context Manager Lifecycles</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Always clean up before deciding exception suppression:</strong> Release locks, buffers, or temporary handles in <code>__exit__</code> whether <code>exc_type</code> is <code>None</code> or an exception occurred.</li>
+                            <li class="mb-2"><strong>Default to propagating unexpected errors:</strong> Return <code>False</code> from <code>__exit__</code> unless your domain explicitly handles and suppresses a specific exception type.</li>
+                            <li class="mb-2"><strong>Guard operations against inactive sessions:</strong> Check that the context is currently active before allowing mutations or commits inside the block.</li>
+                            <li class="mb-0"><strong>Keep cleanup idempotent:</strong> Make teardown safe to run once even if partial initialization occurred during <code>__enter__</code>.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">7.1 Scoped Transaction Rollback and Commit</h4>
+                <p>A transactional context manager lets callers stage changes inside a <code>with</code> block, automatically commits when the block finishes cleanly, and rolls back staged changes if an error occurs.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from types import TracebackType
+from typing import Optional, Type
+
+class StagingLedgerSession:
+    """Context manager staging balance adjustments and rolling back on failure."""
+
+    def __init__(self, initial_credit: int) -&gt; None:
+        """Initialize a session with a validated non-negative credit balance."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(initial_credit, bool) or not isinstance(initial_credit, int):
+            raise TypeError("Initial credit must be a non-boolean integer.")
+
+        # Enforce a non-negative starting credit balance.
+        if initial_credit &lt; 0:
+            raise ValueError("Initial credit cannot be negative.")
+
+        # Store committed balance, working draft balance, and active status.
+        self._committed_credit: int = initial_credit
+        self._draft_credit: int = initial_credit
+        self._session_active: bool = False
+
+    @property
+    def committed_credit(self) -&gt; int:
+        """Return the finalized credit balance."""
+        # Return the committed credit amount.
+        return self._committed_credit
+
+    def apply_adjustment(self, credit_delta: int) -&gt; None:
+        """Apply a signed integer adjustment within an active session."""
+        # Ensure the caller is inside an active 'with' block.
+        if not self._session_active:
+            raise RuntimeError("Cannot adjust credit outside an active session.")
+
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(credit_delta, bool) or not isinstance(credit_delta, int):
+            raise TypeError("Credit delta must be a non-boolean integer.")
+
+        # Compute candidate balance and prevent negative draft credit.
+        proposed_credit: int = self._draft_credit + credit_delta
+
+        if proposed_credit &lt; 0:
+            raise ValueError("Draft credit cannot drop below zero.")
+
+        # Stage the validated adjustment in the draft balance.
+        self._draft_credit = proposed_credit
+
+    def __enter__(self) -&gt; "StagingLedgerSession":
+        """Activate the session and reset draft state to committed balance."""
+        # Prevent nested re-entry on the same active session instance.
+        if self._session_active:
+            raise RuntimeError("StagingLedgerSession is already active.")
+
+        # Start from the last committed balance and mark session active.
+        self._draft_credit = self._committed_credit
+        self._session_active = True
+
+        return self
+
+    def __exit__(self,
+        exception_type: Optional[Type[BaseException]],
+        exception_value: Optional[BaseException],
+        traceback_obj: Optional[TracebackType],
+    ) -&gt; bool:
+        """Commit staged credit on success or roll back to committed credit on error."""
+        # Commit changes when exiting cleanly without an exception.
+        if exception_type is None:
+            self._committed_credit = self._draft_credit
+        else:
+            # Discard staged changes when an exception unwinds the block.
+            self._draft_credit = self._committed_credit
+
+        # Mark the session closed and allow any exception to propagate.
+        self._session_active = False
+
+        return False
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Commit a valid adjustment inside a 'with' block.
+    ledger_session: StagingLedgerSession = StagingLedgerSession(initial_credit=100)
+
+    with ledger_session as active_session:
+        active_session.apply_adjustment(25)
+        active_session.apply_adjustment(-10)
+
+    print("After commit:", ledger_session.committed_credit)
+
+    # Demonstrate automatic rollback when an error happens mid-block.
+    try:
+        with ledger_session as active_session:
+            active_session.apply_adjustment(50)
+            active_session.apply_adjustment(-500)
+    except ValueError as validation_error:
+        print("Rolled back after error:", validation_error)
+
+    print("After rollback:", ledger_session.committed_credit)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">7.2 Guarded Execution Timer and Diagnostic Capture</h4>
+                <p>Context managers are also useful for measuring elapsed execution time or recording operation outcomes without scattering timing and teardown logic across every call site.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from time import perf_counter
+from types import TracebackType
+from typing import Optional, Type
+
+class OperationStopwatch:
+    """Context manager recording elapsed duration and completion status of a block."""
+
+    def __init__(self, operation_label: str) -&gt; None:
+        """Initialize a stopwatch with a validated non-empty label."""
+        # Reject non-string operation labels defensively.
+        if not isinstance(operation_label, str):
+            raise TypeError("Operation label must be a string.")
+
+        # Normalize whitespace and require a non-empty label.
+        cleaned_label: str = " ".join(operation_label.strip().split())
+
+        if not cleaned_label:
+            raise ValueError("Operation label cannot be blank.")
+
+        # Initialize timing and status fields before entering the block.
+        self._operation_label: str = cleaned_label
+        self._start_timestamp: Optional[float] = None
+        self._elapsed_seconds: Optional[float] = None
+        self._succeeded: Optional[bool] = None
+
+    @property
+    def elapsed_seconds(self) -&gt; Optional[float]:
+        """Return elapsed seconds once the block completes, or None while running."""
+        # Expose elapsed runtime as a read-only property.
+        return self._elapsed_seconds
+
+    @property
+    def succeeded(self) -&gt; Optional[bool]:
+        """Return True if the block finished without error, False if failed, or None."""
+        # Expose completion status as a read-only property.
+        return self._succeeded
+
+    def __enter__(self) -&gt; "OperationStopwatch":
+        """Start high-resolution timing when entering the context."""
+        # Reset prior measurements and record start timestamp.
+        self._elapsed_seconds = None
+        self._succeeded = None
+        self._start_timestamp = perf_counter()
+
+        return self
+
+    def __exit__(
+        self,
+        exception_type: Optional[Type[BaseException]],
+        exception_value: Optional[BaseException],
+        traceback_obj: Optional[TracebackType],
+    ) -&gt; bool:
+        """Record elapsed time and outcome status when exiting the context."""
+        # Compute elapsed duration if a start timestamp was recorded.
+        if self._start_timestamp is not None:
+            self._elapsed_seconds = perf_counter() - self._start_timestamp
+            self._start_timestamp = None
+
+        # Record whether the block completed without raising an exception.
+        self._succeeded = exception_type is None
+        
+        return False
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Measure a short computation block and inspect recorded metrics.
+    timer: OperationStopwatch = OperationStopwatch("  batch normalization ")
+    with timer as active_timer:
+        total_sum: int = sum(range(10000))
+
+    print("Sum:", total_sum)
+    print("Succeeded:", timer.succeeded)
+    print("Elapsed recorded:", timer.elapsed_seconds is not None)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_06.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Properties &amp; Descriptors
+                </a>
+                <a href="chapter_08.html" class="btn btn-primary btn-sm">
+                    Chapter 8 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

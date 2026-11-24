@@ -1,0 +1,406 @@
+
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 8: Inheritance, MRO & Composition Over Inheritance - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 8: Inheritance, MRO &amp; Composition Over Inheritance | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Using inheritance carefully, understanding Python's Method Resolution Order (MRO) and super(), and preferring composition for flexible object design." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 8: Inheritance, MRO &amp; Composition Over Inheritance | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 8: Inheritance, MRO &amp; Composition Over Inheritance</h2>
+                <div class="lead mb-4">
+                    Subclassing can share behavior cleanly when a true <em>is-a</em> relationship exists, yet deep or tangled inheritance hierarchies quickly turn rigid and fragile. Mastering Python's <strong>Method Resolution Order (MRO)</strong>, cooperative <code>super()</code> calls, and <strong>composition</strong> gives you adaptable designs without brittle coupling.
+                </div>
+
+                <p><strong>When inheritance fits:</strong> Use inheritance when a subclass genuinely specializes a base contract and preserves every invariant of the parent class for example, a specialized report formatter or a specific fee rule under a shared base type.</p>
+
+                <p><strong>Why composition often wins:</strong> Wrapping focused collaborator objects inside a class lets you swap strategies or behaviors at runtime without multiplying subclasses across every combination of features.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Design Choice</th>
+                                <th scope="col">Mechanism / Syntax</th>
+                                <th scope="col">Primary Strength</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Single Inheritance</strong></td>
+                                <td><code>class Child(Parent):</code></td>
+                                <td>Reuses shared attributes and behavior for true subtypes</td>
+                                <td>Overriding base methods in ways that break parent invariants</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MRO &amp; <code>super()</code></strong></td>
+                                <td><code>ClassName.__mro__</code>, <code>super()</code></td>
+                                <td>Follows C3 linearization deterministically across multiple inheritance</td>
+                                <td>Hardcoding <code>ParentClass.__init__(self, ...)</code> instead of using <code>super()</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Composition</strong></td>
+                                <td>Holding collaborator instances on <code>self</code></td>
+                                <td>Keeps behaviors modular, swappable, and easy to test in isolation</td>
+                                <td>Exposing unvalidated internal collaborators or forwarding every method blindly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Mixin Ordering</strong></td>
+                                <td><code>class Worker(LogMixin, Base):</code></td>
+                                <td>Adds focused capabilities without deep tree hierarchies</td>
+                                <td>Placing conflicting attribute names or incompatible signatures in mixins</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-diagram-3 me-2"></i>Core Principles of Inheritance, MRO &amp; Composition</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Prefer composition when assembling behaviors:</strong> Favor "has-a" or "uses-a" relationships over deep "is-a" trees when combining policies like rate calculators, validators, or exporters.</li>
+                            <li class="mb-2"><strong>Respect parent invariants in subclasses:</strong> Any subclass must accept valid parent inputs and keep base invariants intact rather than relaxing rules unexpectedly.</li>
+                            <li class="mb-2"><strong>Inspect MRO when combining classes:</strong> Python computes a deterministic lookup order (<code>__mro__</code>) using C3 linearization so <code>super()</code> walks the chain predictably.</li>
+                            <li class="mb-0"><strong>Validate composed collaborators explicitly:</strong> Check that injected helper objects implement the expected interface or callable contract before using them.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">8.1 Inheritance and Preserving Base Invariants</h4>
+                <p>When a subclass extends a base class, it should call <code>super().__init__(...)</code> so shared validation runs once and every child instance starts with guaranteed invariants.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from decimal import Decimal, InvalidOperation
+
+class ShippingRatePolicy:
+    """Base policy calculating a validated base rate from package weight in kilograms."""
+
+    def __init__(self, base_rate: Decimal, per_kg_rate: Decimal) -&gt; None:
+        """Initialize and validate non-negative base and per-kilogram rates."""
+        # Validate base rate and per-kilogram rate defensively.
+        self._base_rate: Decimal = self._parse_non_negative_decimal(base_rate, "base_rate")
+        self._per_kg_rate: Decimal = self._parse_non_negative_decimal(per_kg_rate, "per_kg_rate")
+
+    @staticmethod
+    def _parse_non_negative_decimal(candidate_value: object, field_label: str) -&gt; Decimal:
+        """Convert and validate a finite non-negative Decimal value."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(candidate_value, bool):
+            raise TypeError(f"{field_label} cannot be a boolean.")
+
+        # Parse Decimal or string/numeric inputs safely.
+        try:
+            parsed_decimal: Decimal = (
+                candidate_value
+                if isinstance(candidate_value, Decimal)
+                else Decimal(str(candidate_value).strip())
+            )
+        except (InvalidOperation, TypeError) as parse_error:
+            raise ValueError(f"Invalid decimal for {field_label}: {candidate_value}.") from parse_error
+
+        # Reject NaN, Infinity, or negative rates.
+        if not parsed_decimal.is_finite() or parsed_decimal &lt; Decimal("0.00"):
+            raise ValueError(f"{field_label} must be a finite non-negative Decimal.")
+
+        return parsed_decimal
+
+    def calculate_fee(self, weight_kg: Decimal) -&gt; Decimal:
+        """Compute shipping fee for a positive package weight in kilograms."""
+        # Reject booleans and require a positive finite Decimal weight.
+        if isinstance(weight_kg, bool) or not isinstance(weight_kg, Decimal):
+            raise TypeError("weight_kg must be a Decimal.")
+
+        if not weight_kg.is_finite() or weight_kg &lt;= Decimal("0.00"):
+            raise ValueError("weight_kg must be a positive finite Decimal.")
+
+        # Return base charge plus weight-based charge.
+        return self._base_rate + (self._per_kg_rate * weight_kg)
+
+class ExpressShippingPolicy(ShippingRatePolicy):
+    """Subclass adding a validated express surcharge to the base shipping fee."""
+
+    def __init__(self, base_rate: Decimal, per_kg_rate: Decimal, express_surcharge: Decimal) -&gt; None:
+        """Initialize parent rates and validate the express surcharge."""
+        # Delegate base and per-kg validation to the parent constructor.
+        super().__init__(base_rate=base_rate, per_kg_rate=per_kg_rate)
+
+        # Validate express surcharge as a non-negative finite Decimal.
+        self._express_surcharge: Decimal = self._parse_non_negative_decimal(
+            express_surcharge,
+            "express_surcharge",
+        )
+
+    def calculate_fee(self, weight_kg: Decimal) -&gt; Decimal:
+        """Compute express shipping fee by adding the surcharge to the base fee."""
+        # Compute standard fee via super() and add the validated surcharge.
+        standard_fee: Decimal = super().calculate_fee(weight_kg)
+
+        return standard_fee + self._express_surcharge
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Compare standard and express shipping fees for a 3.5 kg parcel.
+    standard_policy: ShippingRatePolicy = ShippingRatePolicy(Decimal("8.00"), Decimal("2.00"))
+    express_policy: ExpressShippingPolicy = ExpressShippingPolicy(
+        Decimal("8.00"),
+        Decimal("2.00"),
+        Decimal("15.00"),
+    )
+
+    parcel_weight: Decimal = Decimal("3.5")
+
+    print("Standard fee:", standard_policy.calculate_fee(parcel_weight))
+    print("Express fee:", express_policy.calculate_fee(parcel_weight))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">8.2 Method Resolution Order (MRO) and Cooperative <code>super()</code></h4>
+                <p>When multiple classes participate in a hierarchy, Python orders lookup paths in <code>__mro__</code>. Calling <code>super()</code> follows that MRO list rather than jumping straight to a hardcoded class name, keeping cooperative methods in sync.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import list as TypingList
+
+class AuditTrailMixin:
+    """Mixin recording formatted audit entries during a workflow step."""
+
+    def __init__(self, audit_log: TypingList[str], **kwargs: object) -&gt; None:
+        """Initialize audit storage and forward remaining keyword arguments."""
+        # Reject non-list audit log containers defensively.
+        if not isinstance(audit_log, list):
+            raise TypeError("audit_log must be a list.")
+
+        # Store reference to shared audit log and continue MRO initialization.
+        self._audit_log: TypingList[str] = audit_log
+
+        super().__init__(**kwargs)
+
+    def record_step(self, step_description: str) -&gt; None:
+        """Append a step entry and continue along the MRO chain."""
+        # Reject non-string step descriptions.
+        if not isinstance(step_description, str) or not step_description.strip():
+            raise ValueError("step_description must be a non-empty string.")
+
+        # Record step and pass execution to the next class in MRO.
+        self._audit_log.append(f"AUDIT: {step_description.strip()}")
+
+        super().record_step(step_description)
+
+class BaseWorkflowRunner:
+    """Base runner providing a terminal record_step implementation."""
+
+    def __init__(self, runner_name: str) -&gt; None:
+        """Initialize runner with a non-empty name."""
+        # Reject blank or non-string runner names.
+        if not isinstance(runner_name, str) or not runner_name.strip():
+            raise ValueError("runner_name must be a non-empty string.")
+
+        self._runner_name: str = runner_name.strip()
+
+    def record_step(self, step_description: str) -&gt; None:
+        """Finalize step recording at the base of the hierarchy."""
+        # No-op terminal hook for cooperative super() calls.
+        return None
+
+class AuditedOrderRunner(AuditTrailMixin, BaseWorkflowRunner):
+    """Combine audit logging mixin with BaseWorkflowRunner following MRO."""
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Inspect MRO order and run a step through the combined runner.
+    collected_entries: list[str] = []
+
+    workflow: AuditedOrderRunner = AuditedOrderRunner(
+        audit_log=collected_entries,
+        runner_name="nightly-dispatch",
+    )
+
+    workflow.record_step("validated order batch")
+
+    # Display MRO class names and recorded audit entries.
+    mro_names: list[str] = [cls_item.__name__ for cls_item in AuditedOrderRunner.__mro__]
+
+    print("MRO:", mro_names)
+    print("Audit log:", collected_entries)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">8.3 Composition Over Inheritance for Flexible Behavior</h4>
+                <p>Instead of creating separate subclasses for every combination of pricing and packaging rules, compose a focused processor around a rate policy object. You can swap policies cleanly without changing the processor's public contract.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from decimal import Decimal, InvalidOperation
+
+class ShippingRatePolicy:
+    """Base policy calculating a validated shipping fee from package weight in kilograms."""
+
+    def __init__(self, base_rate: Decimal, per_kg_rate: Decimal) -> None:
+        """Initialize and validate non-negative base and per-kilogram rates."""
+        # Validate base rate and per-kilogram rate defensively.
+        self._base_rate: Decimal = self._parse_non_negative_decimal(base_rate, "base_rate")
+        self._per_kg_rate: Decimal = self._parse_non_negative_decimal(per_kg_rate, "per_kg_rate")
+
+    @staticmethod
+    def _parse_non_negative_decimal(candidate_value: object, field_label: str) -> Decimal:
+        """Convert and validate a finite non-negative Decimal value."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(candidate_value, bool):
+            raise TypeError(f"{field_label} cannot be a boolean.")
+
+        # Parse Decimal or string/numeric inputs safely.
+        try:
+            parsed_decimal: Decimal = (
+                candidate_value
+                if isinstance(candidate_value, Decimal)
+                else Decimal(str(candidate_value).strip())
+            )
+        except (InvalidOperation, TypeError) as parse_error:
+            raise ValueError(f"Invalid decimal for {field_label}: {candidate_value}.") from parse_error
+
+        # Reject NaN, Infinity, or negative rates.
+        if not parsed_decimal.is_finite() or parsed_decimal < Decimal("0.00"):
+            raise ValueError(f"{field_label} must be a finite non-negative Decimal.")
+
+        return parsed_decimal
+
+    def calculate_fee(self, weight_kg: Decimal) -> Decimal:
+        """Compute shipping fee for a positive package weight in kilograms."""
+        # Reject booleans and require a positive finite Decimal weight.
+        if isinstance(weight_kg, bool) or not isinstance(weight_kg, Decimal):
+            raise TypeError("weight_kg must be a Decimal.")
+
+        if not weight_kg.is_finite() or weight_kg <= Decimal("0.00"):
+            raise ValueError("weight_kg must be a positive finite Decimal.")
+
+        # Return base charge plus weight-based charge.
+        return self._base_rate + (self._per_kg_rate * weight_kg)
+
+class ExpressShippingPolicy(ShippingRatePolicy):
+    """Subclass adding a validated express surcharge to the base shipping fee."""
+
+    def __init__(self, base_rate: Decimal, per_kg_rate: Decimal, express_surcharge: Decimal) -> None:
+        """Initialize parent rates and validate the express surcharge."""
+        # Delegate base and per-kg validation to the parent constructor.
+        super().__init__(base_rate=base_rate, per_kg_rate=per_kg_rate)
+
+        # Validate express surcharge as a non-negative finite Decimal.
+        self._express_surcharge: Decimal = self._parse_non_negative_decimal(
+            express_surcharge,
+            "express_surcharge",
+        )
+
+    def calculate_fee(self, weight_kg: Decimal) -> Decimal:
+        """Compute express shipping fee by adding the surcharge to the base fee."""
+        # Compute standard fee via super() and add the validated surcharge.
+        standard_fee: Decimal = super().calculate_fee(weight_kg)
+        
+        return standard_fee + self._express_surcharge
+
+class ParcelCheckoutService:
+    """Composable service calculating parcel totals using an injected rate policy."""
+
+    def __init__(self, rate_policy: ShippingRatePolicy) -> None:
+        """Initialize checkout service with a validated ShippingRatePolicy instance."""
+        # Reject objects that are not ShippingRatePolicy instances.
+        if not isinstance(rate_policy, ShippingRatePolicy):
+            raise TypeError("rate_policy must be a ShippingRatePolicy instance.")
+
+        # Store composed policy collaborator on the service instance.
+        self._rate_policy: ShippingRatePolicy = rate_policy
+
+    @property
+    def rate_policy(self) -> ShippingRatePolicy:
+        """Return the active shipping rate policy."""
+        # Expose composed policy via read-only property.
+        return self._rate_policy
+
+    def quote_shipment(self, item_subtotal: Decimal, parcel_weight_kg: Decimal) -> Decimal:
+        """Calculate total charge from item subtotal plus policy-computed shipping fee."""
+        # Reject booleans and validate non-negative finite item subtotal.
+        if isinstance(item_subtotal, bool) or not isinstance(item_subtotal, Decimal):
+            raise TypeError("item_subtotal must be a Decimal.")
+
+        if not item_subtotal.is_finite() or item_subtotal < Decimal("0.00"):
+            raise ValueError("item_subtotal must be a finite non-negative Decimal.")
+
+        # Delegate weight validation and fee calculation to the composed policy.
+        shipping_fee: Decimal = self._rate_policy.calculate_fee(parcel_weight_kg)
+        return item_subtotal + shipping_fee
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Quote the same parcel under two composed shipping policies.
+    weight_kg: Decimal = Decimal("4.0")
+    subtotal: Decimal = Decimal("60.00")
+
+    standard_checkout: ParcelCheckoutService = ParcelCheckoutService(
+        ShippingRatePolicy(Decimal("5.00"), Decimal("1.50"))
+    )
+
+    express_checkout: ParcelCheckoutService = ParcelCheckoutService(
+        ExpressShippingPolicy(Decimal("5.00"), Decimal("1.50"), Decimal("12.00"))
+    )
+
+    print("Standard total:", standard_checkout.quote_shipment(subtotal, weight_kg))
+    print("Express total:", express_checkout.quote_shipment(subtotal, weight_kg))</code></pre>
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_07.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Context Managers &amp; Lifecycles
+                </a>
+                <a href="chapter_09.html" class="btn btn-primary btn-sm">
+                    Chapter 9 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

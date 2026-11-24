@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 16: Observability, Metrics & Audit Trails in OOP Systems - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 16: Observability, Metrics &amp; Audit Trails in OOP Systems | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Instrumenting counters and timers, recording structured audit trails, and correlating operational telemetry across Python service classes." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 16: Observability, Metrics &amp; Audit Trails in OOP Systems | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 16: Observability, Metrics &amp; Audit Trails in OOP Systems</h2>
+                <div class="lead mb-4">
+                    In production, knowing that a class ran is rarely enough operators need quantitative <strong>metrics</strong>, duration measurements, and immutable <strong>audit trails</strong> showing who triggered an action, what changed, and whether it succeeded. Dedicated telemetry collectors and audit recorders keep observability structured without polluting business logic.
+                </div>
+
+                <p><strong>Separating metrics from domain state:</strong> Counters and latency timers track system behavior over time, while audit entries capture accountable state transitions with correlation context and timestamps.</p>
+
+                <p><strong>Safe telemetry under concurrency:</strong> Since metrics and audit logs are often updated across multiple requests or threads, internal counters and entry lists must be guarded and exposed as read-only snapshots.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Observability Pillar</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Key Advantage</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Metrics Registry</strong></td>
+                                <td>Tracks named counters and duration samples across operations</td>
+                                <td>Exposes throughput, error rates, and latency trends cleanly</td>
+                                <td>Mutating raw internal dictionaries from outside the registry</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Audit Trail Recorder</strong></td>
+                                <td>Appends immutable records of significant state actions</td>
+                                <td>Provides a clear chronological trail for debugging and compliance</td>
+                                <td>Allowing retroactive mutation or missing actor/outcome fields</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Operation Timer</strong></td>
+                                <td>Measures elapsed execution time across a scoped block</td>
+                                <td>Records accurate durations on both success and failure paths</td>
+                                <td>Forgetting to record timing when an exception escapes the block</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Correlation Context</strong></td>
+                                <td>Attaches a request or workflow ID across metrics and audit events</td>
+                                <td>Links performance spikes directly to specific business operations</td>
+                                <td>Dropping correlation IDs at service or adapter boundaries</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-activity me-2"></i>Core Principles of Metrics &amp; Audit Trails</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Keep audit entries immutable:</strong> Represent each audit record as a frozen dataclass with a UTC timestamp, actor, action, target, and outcome.</li>
+                            <li class="mb-2"><strong>Measure both success and failure paths:</strong> Record operation durations and outcome counters even when an operation raises an exception.</li>
+                            <li class="mb-2"><strong>Guard shared telemetry state with a lock:</strong> Synchronize counter increments, timing samples, and audit appends so concurrent callers stay consistent.</li>
+                            <li class="mb-0"><strong>Validate metric names and labels early:</strong> Reject blank names, negative increments, or booleans before updating telemetry state.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">16.1 Thread-Safe Metrics Registry &amp; Scoped Timer</h4>
+                <p>This metrics registry records validated counter increments and millisecond timing samples under a lock, while a context-managed timer records elapsed duration on both normal exit and exception.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import time
+import threading
+
+from decimal import Decimal
+from dataclasses import dataclass
+from types import TracebackType
+
+@dataclass(frozen=True)
+class TimingSummary:
+    """Immutable summary of recorded duration samples in milliseconds."""
+
+    number_of_samples: int
+    total_ms: Decimal
+    maximum_ms: Decimal
+
+class MetricsRegistry:
+    """Thread-safe collector for named counters and operation duration samples."""
+
+    def __init__(self) -> None:
+        """Initialize lock and empty metric stores."""
+        # Protect counter and timing dictionaries against concurrent updates.
+        self._lock: threading.Lock = threading.Lock()
+        self._counters: dict[str, int] = {}
+        self._timings_ms: dict[str, list[Decimal]] = {}
+
+    @staticmethod
+    def _clean_metric_name(name: object) -> str:
+        """Validate and normalize a non-empty metric identifier."""
+        # Reject non-string or whitespace-only metric names defensively.
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("metric_name must be a non-empty string.")
+
+        # Normalize metric names to lowercase with trimmed whitespace.
+        return name.strip().lower()
+
+    def increment_counter(self, metric_name: str, step_amount: int = 1) -> int:
+        """Increment a counter by step_amount and return the updated total."""
+        # Validate metric name and non-boolean positive integer step.
+        clean_name: str = self._clean_metric_name(metric_name)
+
+        if isinstance(step_amount, bool) or not isinstance(step_amount, int):
+            raise TypeError("step_amount must be a non-boolean integer.")
+
+        if step_amount < 1:
+            raise ValueError("step_amount must be greater than or equal to 1.")
+
+        # Update counter atomically under lock.
+        with self._lock:
+            updated_value: int = self._counters.get(clean_name, 0) + step_amount
+
+            self._counters[clean_name] = updated_value
+
+            return updated_value
+
+    def record_duration_ms(self, metric_name: str, duration_ms: Decimal) -> None:
+        """Record a non-negative finite duration sample in milliseconds."""
+        # Validate metric name and Decimal duration value.
+        clean_name: str = self._clean_metric_name(metric_name)
+
+        if isinstance(duration_ms, bool) or not isinstance(duration_ms, Decimal):
+            raise TypeError("duration_ms must be a Decimal.")
+
+        if not duration_ms.is_finite() or duration_ms < Decimal("0.00"):
+            raise ValueError("duration_ms must be a non-negative finite Decimal.")
+
+        # Append duration sample under lock.
+        with self._lock:
+            samples: list[Decimal] = self._timings_ms.setdefault(clean_name, [])
+            samples.append(duration_ms)
+
+    def counters_snapshot(self) -> dict[str, int]:
+        """Return a copy of all counter totals."""
+        # Read counters under lock so external mutations cannot race.
+        with self._lock:
+            return dict(self._counters)
+
+    def timing_summary(self, metric_name: str) -> TimingSummary:
+        """Return aggregated timing statistics for a recorded metric."""
+        # Normalize name and compute summary under lock.
+        clean_name: str = self._clean_metric_name(metric_name)
+
+        with self._lock:
+            samples: list[Decimal] = list(self._timings_ms.get(clean_name, []))
+
+        if not samples:
+            return TimingSummary(
+                number_of_samples=0,
+                total_ms=Decimal("0.000"),
+                maximum_ms=Decimal("0.000"),
+            )
+
+        total_value: Decimal = sum(samples, start=Decimal("0.000"))
+        maximum_value: Decimal = max(samples)
+
+        return TimingSummary(
+            number_of_samples=len(samples),
+            total_ms=total_value,
+            maximum_ms=maximum_value,
+        )
+
+class OperationTimer:
+    """Context manager measuring elapsed milliseconds into a MetricsRegistry."""
+
+    def __init__(self, registry: MetricsRegistry, metric_name: str) -> None:
+        """Initialize timer with a MetricsRegistry and target metric name."""
+        # Reject invalid registry or blank metric names defensively.
+        if not isinstance(registry, MetricsRegistry):
+            raise TypeError("registry must be a MetricsRegistry instance.")
+
+        if not isinstance(metric_name, str) or not metric_name.strip():
+            raise ValueError("metric_name must be a non-empty string.")
+
+        self._registry: MetricsRegistry = registry
+        self._metric_name: str = metric_name.strip().lower()
+        self._start_perf_counter: float | None = None
+
+    def __enter__(self) -> "OperationTimer":
+        """Start high-resolution timer when entering the context block."""
+        # Capture monotonic start timestamp.
+        self._start_perf_counter = time.perf_counter()
+
+        return self
+
+    def __exit__(
+        self,
+        exception_type: type[BaseException] | None,
+        exception_value: BaseException | None,
+        exception_traceback: TracebackType | None,
+    ) -> bool:
+        """Record elapsed milliseconds in the registry and never suppress exceptions."""
+        # Compute elapsed duration if timer was started.
+        if self._start_perf_counter is not None:
+            elapsed_seconds: float = max(0.0, time.perf_counter() - self._start_perf_counter)
+            elapsed_ms: Decimal = Decimal(f"{elapsed_seconds * 1000.0:.3f}")
+
+            self._registry.record_duration_ms(self._metric_name, elapsed_ms)
+            self._start_perf_counter = None
+
+        # Allow exceptions to propagate normally.
+        return False
+
+# Run this block only when executing the module directly.
+if __name__ == "__main__":
+    # Measure a timed operation and inspect recorded counters and timing summary.
+    metrics_store: MetricsRegistry = MetricsRegistry()
+    metrics_store.increment_counter("jobs_started", 2)
+
+    with OperationTimer(metrics_store, "batch_sync_duration_ms"):
+        total_sum: int = sum(range(10_000))
+        _ = total_sum
+
+    metrics_store.increment_counter("jobs_completed", 2)
+
+    print("Counters:", metrics_store.counters_snapshot())
+    print("Timing summary:", metrics_store.timing_summary("batch_sync_duration_ms"))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">16.2 Immutable Audit Trail Recorder</h4>
+                <p>An audit trail recorder captures structured, immutable events with correlation IDs and outcomes so operational actions can be traced cleanly.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import threading
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+@dataclass(frozen=True)
+class AuditEntry:
+    """Immutable audit record capturing actor, action, target, outcome, and context."""
+
+    correlation_id: str
+    actor_name: str
+    action_name: str
+    target_resource: str
+    outcome_status: str
+    recorded_at_utc: datetime
+
+    def __post_init__(self) -> None:
+        """Validate non-empty strings, outcome label, and timezone-aware timestamp."""
+        # Reject blank or non-string audit fields defensively.
+        for field_label, field_value in (
+            ("correlation_id", self.correlation_id),
+            ("actor_name", self.actor_name),
+            ("action_name", self.action_name),
+            ("target_resource", self.target_resource),
+        ):
+            if not isinstance(field_value, str) or not field_value.strip():
+                raise ValueError(f"{field_label} must be a non-empty string.")
+
+        # Restrict outcome_status to explicit allowed values.
+        if not isinstance(self.outcome_status, str):
+            raise TypeError("outcome_status must be a string.")
+
+        normalized_outcome: str = self.outcome_status.strip().lower()
+
+        if normalized_outcome not in {"success", "failure", "denied"}:
+            raise ValueError("outcome_status must be 'success', 'failure', or 'denied'.")
+
+        # Require timezone-aware datetime for unambiguous audit ordering.
+        if not isinstance(self.recorded_at_utc, datetime) or self.recorded_at_utc.tzinfo is None:
+            raise ValueError("recorded_at_utc must be a timezone-aware datetime.")
+
+        # Normalize string fields cleanly on the frozen record.
+        object.__setattr__(self, "correlation_id", self.correlation_id.strip())
+        object.__setattr__(self, "actor_name", self.actor_name.strip().lower())
+        object.__setattr__(self, "action_name", self.action_name.strip().lower())
+        object.__setattr__(self, "target_resource", self.target_resource.strip())
+        object.__setattr__(self, "outcome_status", normalized_outcome)
+
+class AuditTrailRecorder:
+    """Thread-safe append-only recorder storing AuditEntry records."""
+
+    def __init__(self) -> None:
+        """Initialize lock and empty audit event list."""
+        # Guard append and read operations with a dedicated lock.
+        self._lock: threading.Lock = threading.Lock()
+        self._entries: list[AuditEntry] = []
+
+    def record_event(
+        self,
+        correlation_id: str,
+        actor_name: str,
+        action_name: str,
+        target_resource: str,
+        outcome_status: str,
+    ) -> AuditEntry:
+        """Create a timestamped AuditEntry and append it to the trail."""
+        # Construct AuditEntry with current UTC timestamp and append under lock.
+        new_entry: AuditEntry = AuditEntry(
+            correlation_id=correlation_id,
+            actor_name=actor_name,
+            action_name=action_name,
+            target_resource=target_resource,
+            outcome_status=outcome_status,
+            recorded_at_utc=datetime.now(timezone.utc),
+        )
+
+        with self._lock:
+            self._entries.append(new_entry)
+
+        return new_entry
+
+    def list_entries(self) -> list[AuditEntry]:
+        """Return a snapshot list of all recorded AuditEntry objects."""
+        # Return shallow list copy under lock so callers cannot mutate internal list.
+        with self._lock:
+            return list(self._entries)
+
+# Run this block only when executing the module directly.
+if __name__ == "__main__":
+    # Record sample audit events and print stored entries.
+    trail: AuditTrailRecorder = AuditTrailRecorder()
+
+    trail.record_event(
+        correlation_id="corr-5001",
+        actor_name="ops_bot",
+        action_name="publish_schedule",
+        target_resource="schedule/2026-11-23",
+        outcome_status="success",
+    )
+
+    trail.record_event(
+        correlation_id="corr-5002",
+        actor_name="guest_user",
+        action_name="delete_schedule",
+        target_resource="schedule/2026-11-23",
+        outcome_status="denied",
+    )
+
+    for audit_item in trail.list_entries():
+        print("Audit entry:", audit_item)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_15.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Thread-Safe, Async &amp; Fakes
+                </a>
+                <a href="../index.html" class="btn btn-primary btn-sm">
+                    Table of Contents <i class="bi bi-house ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

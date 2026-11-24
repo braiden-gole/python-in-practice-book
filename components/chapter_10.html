@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 10: __init_subclass__, Class Decorators & Metaclasses - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 10: __init_subclass__, Class Decorators &amp; Metaclasses | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Customizing class creation and subclass registration in Python using __init_subclass__, class decorators, and metaclasses." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 10: __init_subclass__, Class Decorators &amp; Metaclasses | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 10: <code>__init_subclass__</code>, Class Decorators &amp; Metaclasses</h2>
+                <div class="lead mb-4">
+                    In Python, classes themselves are objects created at class-definition time. Hooks like <strong><code>__init_subclass__</code></strong>, <strong>class decorators</strong>, and <strong>metaclasses</strong> let you validate subclass contracts, register plugins automatically, or inspect class attributes as soon as a class is defined.
+                </div>
+
+                <p><strong>Choosing the simplest hook that fits:</strong> Start with <code>__init_subclass__</code> for subclass rules and plugin registration, reach for a class decorator when transforming or annotating individual classes cleanly, and reserve metaclasses for deep class creation control when simpler hooks are not enough.</p>
+
+                <p><strong>Fail fast at class definition time:</strong> Enforcing required class attributes or unique registry keys when a class is created catches configuration mistakes immediately when the module loads rather than deep inside a runtime request.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Mechanism</th>
+                                <th scope="col">When It Runs</th>
+                                <th scope="col">Primary Strength</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong><code>__init_subclass__</code></strong></td>
+                                <td>Whenever a direct subclass is created</td>
+                                <td>Clean subclass validation and automatic plugin registration without a metaclass</td>
+                                <td>Forgetting <code>super().__init_subclass__(**kwargs)</code> in multi-level hierarchies</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Class Decorator</strong></td>
+                                <td>Immediately after the decorated class is constructed</td>
+                                <td>Explicit, readable per-class wrapping, tagging, or registry attachment</td>
+                                <td>Mutating shared mutable defaults across multiple decorated classes</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Metaclass (<code>type</code>)</strong></td>
+                                <td>During class object construction (<code>__new__</code> / <code>__init__</code>)</td>
+                                <td>Controls class namespace, bases, and metaclass-level behavior</td>
+                                <td>Over-engineering simple validation or registration that <code>__init_subclass__</code> handles</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Registry Lookup</strong></td>
+                                <td>At class registration and lookup time</td>
+                                <td>Maps normalized keys to concrete handler or parser classes</td>
+                                <td>Allowing duplicate keys or blank/non-string registry identifiers</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-gear-wide-connected me-2"></i>Core Principles of Class Customization</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Prefer <code>__init_subclass__</code> over custom metaclasses:</strong> For subclass checks and registries, <code>__init_subclass__</code> keeps hierarchies clear and avoids metaclass conflicts.</li>
+                            <li class="mb-2"><strong>Always call <code>super().__init_subclass__(**kwargs)</code>:</strong> Forwarding keyword arguments preserves cooperative subclass initialization across inheritance chains.</li>
+                            <li class="mb-2"><strong>Validate class attributes and keys defensively:</strong> Check types, strip/normalize identifiers, and reject duplicate registrations right at definition time.</li>
+                            <li class="mb-0"><strong>Keep class-creation hooks predictable:</strong> Avoid hidden side effects or silent overwrites when registering classes into a lookup table.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">10.1 Subclass Validation and Registration with <code>__init_subclass__</code></h4>
+                <p>Defining <code>__init_subclass__</code> on a base class lets you require a normalized <code>handler_code</code> attribute on every subclass and register it automatically for lookup.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import ClassVar, Optional
+
+class ShipmentActionHandler:
+    """Base handler registering subclasses by a validated handler_code."""
+
+    # Store registered subclass types keyed by normalized handler code.
+    handler_code: ClassVar[Optional[str]] = None
+    _handler_registry: ClassVar[dict[str, type["ShipmentActionHandler"]]] = {}
+    
+    def __init_subclass__(cls, **keyword_arguments: object) -> None:
+        """Validate handler_code and register concrete subclasses automatically."""
+        # Forward keyword arguments along the inheritance chain first.
+        super().__init_subclass__(**keyword_arguments)
+
+        # Read handler_code declared on the subclass itself.
+        handler_code_value: object = cls.__dict__.get("handler_code")
+
+        # Require concrete subclasses to define a non-empty string handler_code.
+        if not isinstance(handler_code_value, str):
+            raise TypeError(f"{cls.__name__} must define a string 'handler_code'.")
+
+        # Normalize code casing and reject blank values.
+        normalized_code: str = handler_code_value.strip().upper()
+
+        if not normalized_code:
+            raise ValueError(f"{cls.__name__} 'handler_code' cannot be blank.")
+
+        # Reject duplicate handler codes so registrations never collide silently.
+        if normalized_code in cls._handler_registry:
+            raise ValueError(f"Duplicate handler_code '{normalized_code}' in {cls.__name__}.")
+
+        # Store normalized code on the subclass and register it.
+        cls.handler_code = normalized_code
+        cls._handler_registry[normalized_code] = cls
+
+    @classmethod
+    def resolve_handler(cls, lookup_code: str) -> type["ShipmentActionHandler"]:
+        """Look up a registered handler class by normalized code."""
+        # Reject non-string lookup codes defensively.
+        if not isinstance(lookup_code, str):
+            raise TypeError("lookup_code must be a string.")
+
+        # Normalize lookup input before checking the registry.
+        normalized_code: str = lookup_code.strip().upper()
+
+        if normalized_code not in cls._handler_registry:
+            raise KeyError(f"Unknown handler code: '{normalized_code}'.")
+
+        # Return the matching registered handler class.
+        return cls._handler_registry[normalized_code]
+
+    @staticmethod
+    def _normalize_reference(shipment_reference: object) -> str:
+        """Validate and normalize a non-empty shipment reference string."""
+        # Reject non-string shipment references defensively.
+        if not isinstance(shipment_reference, str):
+            raise TypeError("shipment_reference must be a string.")
+
+        # Normalize whitespace and casing while rejecting blank values.
+        cleaned_reference: str = shipment_reference.strip().upper()
+
+        if not cleaned_reference:
+            raise ValueError("shipment_reference cannot be blank.")
+
+        # Return normalized reference code.
+        return cleaned_reference
+
+    def execute_action(self, shipment_reference: str) -> str:
+        """Execute a validated action for a shipment reference."""
+        # Normalize shipment reference before building action output.
+        cleaned_reference: str = self._normalize_reference(shipment_reference)
+
+        # Return formatted action confirmation.
+        return f"{self.handler_code}: processed {cleaned_reference}"
+
+
+class HoldShipmentHandler(ShipmentActionHandler):
+    """Concrete handler placing a shipment on hold with a validated reason."""
+
+    handler_code = "hold_parcel"
+
+    def __init__(self, hold_reason: str = "inspection_required") -> None:
+        """Initialize handler with a validated non-empty hold reason."""
+        # Reject non-string hold reasons defensively.
+        if not isinstance(hold_reason, str):
+            raise TypeError("hold_reason must be a string.")
+
+        # Normalize whitespace and reject blank hold reasons.
+        cleaned_reason: str = " ".join(hold_reason.strip().split())
+
+        if not cleaned_reason:
+            raise ValueError("hold_reason cannot be blank.")
+
+        # Store normalized hold reason on the handler instance.
+        self._hold_reason: str = cleaned_reason
+
+    @property
+    def hold_reason(self) -> str:
+        """Return the normalized hold reason."""
+        # Expose hold reason via read-only property.
+        return self._hold_reason
+
+    def execute_action(self, shipment_reference: str) -> str:
+        """Record a hold placement for the validated shipment reference."""
+        # Normalize shipment reference before formatting hold status.
+        cleaned_reference: str = self._normalize_reference(shipment_reference)
+
+        # Return hold confirmation including the configured hold reason.
+        return f"{self.handler_code}: {cleaned_reference} placed on hold ({self._hold_reason})"
+
+
+class ReleaseShipmentHandler(ShipmentActionHandler):
+    """Concrete handler releasing a held shipment for outbound dispatch."""
+
+    handler_code = "release_parcel"
+
+    def __init__(self, clearance_badge: str = "OPS-CLEAR") -> None:
+        """Initialize handler with a validated clearance badge identifier."""
+        # Reject non-string clearance badge identifiers defensively.
+        if not isinstance(clearance_badge, str):
+            raise TypeError("clearance_badge must be a string.")
+
+        # Normalize casing and reject blank badge identifiers.
+        cleaned_badge: str = clearance_badge.strip().upper()
+
+        if not cleaned_badge:
+            raise ValueError("clearance_badge cannot be blank.")
+
+        # Store normalized clearance badge on the handler instance.
+        self._clearance_badge: str = cleaned_badge
+
+    @property
+    def clearance_badge(self) -> str:
+        """Return the normalized clearance badge identifier."""
+        # Expose clearance badge via read-only property.
+        return self._clearance_badge
+
+    def execute_action(self, shipment_reference: str) -> str:
+        """Release a held shipment for dispatch using the validated clearance badge."""
+        # Normalize shipment reference before formatting release status.
+        cleaned_reference: str = self._normalize_reference(shipment_reference)
+
+        # Return release confirmation including the clearance badge.
+        return f"{self.handler_code}: {cleaned_reference} released by {self._clearance_badge}"
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Resolve and run the hold handler with a custom hold reason.
+    hold_handler_cls: type[ShipmentActionHandler] = ShipmentActionHandler.resolve_handler(" hold_parcel ")
+    hold_handler: HoldShipmentHandler = HoldShipmentHandler(hold_reason=" customs_review ")
+
+    # Resolve and run the release handler with a custom clearance badge.
+    release_handler_cls: type[ShipmentActionHandler] = ShipmentActionHandler.resolve_handler("RELEASE_PARCEL")
+    release_handler: ReleaseShipmentHandler = ReleaseShipmentHandler(clearance_badge=" sup-42 ")
+
+    print("Registered keys:", list(ShipmentActionHandler._handler_registry.keys()))
+    print("Resolved hold class:", hold_handler_cls.__name__)
+    print("Hold result:", hold_handler.execute_action(" shp-305 "))
+    print("Resolved release class:", release_handler_cls.__name__)
+    print("Release result:", release_handler.execute_action(" shp-305 "))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">10.2 Class Decorators and Custom Metaclasses</h4>
+                <p>A <strong>class decorator</strong> attaches metadata or behavior after a class is built, while a <strong>metaclass</strong> customizes class creation through <code>type.__new__</code> or <code>type.__init__</code>.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Callable, ClassVar, TypeVar
+
+ClassType = TypeVar("ClassType", bound=type)
+
+def tag_schema_version(schema_version: int) -> Callable[[ClassType], ClassType]:
+    """Class decorator attaching a validated non-boolean integer schema_version."""
+    # Reject booleans explicitly because bool subclasses int in Python.
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int):
+        raise TypeError("schema_version must be a non-boolean integer.")
+
+    # Require a positive schema version number.
+    if schema_version <= 0:
+        raise ValueError("schema_version must be greater than zero.")
+
+    def decorate_class(target_class: ClassType) -> ClassType:
+        """Attach normalized schema_version onto the decorated class."""
+        # Bind validated version attribute onto the class object.
+        setattr(target_class, "schema_version", schema_version)
+
+        # Return decorated class reference.
+        return target_class
+
+    # Return decorator function.
+    return decorate_class
+
+class AuditFieldMeta(type):
+    """Metaclass ensuring every class using it declares a non-empty tuple of audit fields."""
+
+    def __new__(
+        meta_class: type["AuditFieldMeta"],
+        class_name: str,
+        base_classes: tuple[type, ...],
+        class_namespace: dict[str, object],
+        **extra_kwargs: object,
+    ) -> "AuditFieldMeta":
+        """Validate required_audit_fields before constructing the new class object."""
+        # Create the class via type.__new__ first.
+        created_class = super().__new__(
+            meta_class,
+            class_name,
+            base_classes,
+            class_namespace,
+            **extra_kwargs,
+        )
+
+        # Skip validation on the base marker class itself.
+        if class_name == "AuditedRecordBase":
+            return created_class
+
+        # Read declared audit fields from the class namespace.
+        fields: object = class_namespace.get("required_audit_fields")
+
+        if not isinstance(fields, tuple) or len(fields) == 0:
+            raise TypeError(
+                f"{class_name} must define a non-empty tuple 'required_audit_fields'."
+            )
+
+        # Validate every field name is a non-empty string.
+        validated_fields: list[str] = []
+
+        for field_entry in fields:
+            if not isinstance(field_entry, str) or not field_entry.strip():
+                raise ValueError(f"Invalid audit field in {class_name}: {field_entry!r}.")
+
+            validated_fields.append(field_entry.strip())
+
+        # Store normalized tuple on the created class.
+        setattr(created_class, "required_audit_fields", tuple(validated_fields))
+
+        # Return validated class object.
+        return created_class
+
+class AuditedRecordBase(metaclass=AuditFieldMeta):
+    """Base class using AuditFieldMeta to enforce audit field declarations."""
+
+    required_audit_fields: ClassVar[tuple[str, ...]] = ("created_by",)
+    schema_version: ClassVar[int] = 1
+
+    def __init__(self, manifest_code: str, audit_metadata: dict[str, str]) -> None:
+        """Initialize a record and verify all required audit fields are present."""
+        # Reject non-string manifest codes defensively.
+        if not isinstance(manifest_code, str):
+            raise TypeError("manifest_code must be a string.")
+
+        # Normalize and reject blank manifest codes.
+        cleaned_code: str = manifest_code.strip().upper()
+        if not cleaned_code:
+            raise ValueError("manifest_code cannot be blank.")
+
+        # Reject non-dict audit metadata mappings.
+        if not isinstance(audit_metadata, dict):
+            raise TypeError("audit_metadata must be a dictionary.")
+
+        # Validate every required audit field exists with a non-empty string value.
+        normalized_audit: dict[str, str] = {}
+
+        for required_key in type(self).required_audit_fields:
+            if required_key not in audit_metadata:
+                raise ValueError(f"Missing required audit field '{required_key}'.")
+
+            value: object = audit_metadata[required_key]
+
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"Audit field '{required_key}' must be a non-empty string.")
+
+            normalized_audit[required_key] = value.strip()
+
+        # Store validated manifest identifier and audit values.
+        self._manifest_code: str = cleaned_code
+        self._audit_metadata: dict[str, str] = normalized_audit
+
+    @property
+    def manifest_code(self) -> str:
+        """Return the normalized manifest code."""
+        # Expose manifest code via read-only property.
+        return self._manifest_code
+
+    @property
+    def audit_metadata(self) -> dict[str, str]:
+        """Return a shallow copy of validated audit metadata."""
+        # Return copy so external callers cannot mutate internal state.
+        return dict(self._audit_metadata)
+
+    def summarize_record(self) -> str:
+        """Format a summary line including schema version and audited fields."""
+        # Format key-value audit pairs deterministically.
+        audit_summary: str = ", ".join(
+            f"{field_name}={field_value}"
+            for field_name, field_value in self._audit_metadata.items()
+        )
+
+        # Return formatted record summary string.
+        return f"v{type(self).schema_version} {self._manifest_code} [{audit_summary}]"
+
+@tag_schema_version(2)
+class DispatchManifestRecord(AuditedRecordBase):
+    """Versioned record class combining a metaclass check and class decorator."""
+
+    required_audit_fields: ClassVar[tuple[str, ...]] = ("dispatched_by", "warehouse_code")
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Instantiate a valid DispatchManifestRecord and inspect class and instance state.
+    manifest_record: DispatchManifestRecord = DispatchManifestRecord(
+        manifest_code=" mnf-204 ",
+        audit_metadata={
+            "dispatched_by": "alex_morgan",
+            "warehouse_code": "YYZ-01",
+        },
+    )
+
+    print("Audit fields:", DispatchManifestRecord.required_audit_fields)
+    print("Schema version:", DispatchManifestRecord.schema_version)
+    print("Summary:", manifest_record.summarize_record())</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_09.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> ABCs &amp; Structural Protocols
+                </a>
+                <a href="chapter_11.html" class="btn btn-primary btn-sm">
+                    Chapter 11 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

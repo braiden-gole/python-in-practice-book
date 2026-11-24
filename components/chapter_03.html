@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 3: Class Architecture, Invariants & Object Lifecycle - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 3: Class Architecture, Invariants &amp; Object Lifecycle | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Designing cohesive classes, __init__ vs. factory classmethods, object identity vs. equality, and state transitions in Python." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 3: Class Architecture, Invariants &amp; Object Lifecycle | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 3: Class Architecture, Invariants &amp; Object Lifecycle</h2>
+                <div class="lead mb-4">
+                    Once you can type-hint and normalize individual values, the next step is grouping related data and behavior into <strong>cohesive classes</strong>. A well-designed class protects its internal rules called <strong>invariants</strong> from the moment an object is constructed through every state transition during its lifetime.
+                </div>
+
+                <p><strong>What makes a class cohesive:</strong> Every attribute and method on a class should serve one clear responsibility. If a class juggles unrelated tasks like file parsing, network requests, and UI formatting at once, split those responsibilities into focused collaborator objects.</p>
+
+                <p><strong>Class invariants at a glance:</strong> An <em>invariant</em> is a condition that must remain true whenever an object is created or mutated—for example, a non-empty SKU code, a non-negative stock count, or a valid lifecycle status such as <code>"active"</code>, <code>"reserved"</code>, or <code>"discontinued"</code>.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Concept</th>
+                                <th scope="col">Mechanism / Syntax</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Instance State</strong></td>
+                                <td><code>self.attribute: Type</code> in <code>__init__</code></td>
+                                <td>Stores per-object data with explicit type hints</td>
+                                <td>Leaving attributes unvalidated or accepting <code>bool</code> as <code>int</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Class Attribute</strong></td>
+                                <td><code>ALLOWED_STATUSES: frozenset[str]</code> on class</td>
+                                <td>Shares immutable configuration or constants across instances</td>
+                                <td>Mutating a shared list or dict in place across instances</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Factory Constructor</strong></td>
+                                <td><code>@classmethod def from_...(cls, ...) -&gt; Self</code></td>
+                                <td>Parses raw inputs (such as strings or records) into a valid instance</td>
+                                <td>Bypassing validation rules when building from external text</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Identity vs. Equality</strong></td>
+                                <td><code>is</code> vs. <code>==</code> (<code>__eq__</code>)</td>
+                                <td>Distinguishes the same object in memory from equal domain values</td>
+                                <td>Using <code>is</code> to compare strings, numbers, or domain objects</td>
+                            </tr>
+                            <tr>
+                                <td><strong>State Transitions</strong></td>
+                                <td>Explicit methods (<code>reserve()</code>, <code>restock()</code>)</td>
+                                <td>Moves objects through valid states while preserving invariants</td>
+                                <td>Allowing arbitrary status jumps or negative balances</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-shield-check me-2"></i>Core Principles of Class Lifecycle Design</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Fail-fast construction:</strong> Validate arguments inside <code>__init__</code> so an invalid object can never exist in memory.</li>
+                            <li class="mb-2"><strong><code>@classmethod</code> factories:</strong> Use <code>@classmethod</code> with <code>cls</code> when constructing instances from alternative formats (like raw strings or CSV lines) and delegate directly to <code>cls(...)</code> so invariants stay enforced.</li>
+                            <li class="mb-2"><strong>Identity (<code>is</code>) vs. equality (<code>==</code>):</strong> <code>is</code> checks whether two references point to the exact same object in memory; <code>==</code> compares value equality through <code>__eq__</code>.</li>
+                            <li class="mb-0"><strong>Controlled state transitions:</strong> Encapsulate state changes behind explicit methods that verify preconditions before mutating attributes.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">3.1 Constructing Objects and Enforcing Invariants</h4>
+                <p>When you call a class like <code>InventoryItem(...)</code>, Python allocates a new instance and runs <code>__init__</code> to initialize its state. Checking types and business rules right inside <code>__init__</code> guarantees that every live instance starts in a valid state.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">class InventoryItem:
+    """Represent a tracked warehouse item with enforced state invariants."""
+
+    # Store allowed lifecycle states as an immutable frozenset on the class.
+    VALID_STATUSES: frozenset[str] = frozenset({"active", "reserved", "discontinued"})
+
+    def __init__(self, sku_code: str, item: str, quantity: int, status: str = "active") -&gt; None:
+        """Initialize and validate all required instance attributes."""
+        # Reject non-string SKU identifiers early.
+        if not isinstance(sku_code, str):
+            raise TypeError("SKU code must be a string.")
+
+        # Normalize whitespace and uppercase the SKU for consistent lookup.
+        normalized_sku: str = sku_code.strip().upper()
+
+        # Ensure the SKU is non-empty after trimming whitespace.
+        if not normalized_sku:
+            raise ValueError("SKU code cannot be blank.")
+
+        # Reject non-string item names before normalizing.
+        if not isinstance(item, str):
+            raise TypeError("Item name must be a string.")
+
+        # Collapse repeated internal spaces and trim surrounding whitespace.
+        normalized_name: str = " ".join(item.strip().split())
+
+        # Reject blank item names.
+        if not normalized_name:
+            raise ValueError("Item name cannot be blank.")
+
+        # Check bool first because bool subclasses int in Python.
+        if isinstance(quantity, bool) or not isinstance(quantity, int):
+            raise TypeError("Stock quantity must be a non-boolean integer.")
+
+        # Enforce a non-negative stock invariant on initial creation.
+        if quantity &lt; 0:
+            raise ValueError("Stock quantity cannot be negative.")
+
+        # Reject non-string status values.
+        if not isinstance(status, str):
+            raise TypeError("Status must be a string.")
+
+        # Normalize status casing before checking allowed lifecycle values.
+        normalized_status: str = status.strip().casefold()
+
+        # Reject unsupported lifecycle states.
+        if normalized_status not in self.VALID_STATUSES:
+            raise ValueError(f"Unsupported item status: {status}.")
+
+        # Bind validated state onto the instance.
+        self.sku_code: str = normalized_sku
+        self.item_name: str = normalized_name
+        self.stock_quantity: int = quantity
+        self.status: str = normalized_status
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create a valid warehouse item instance.
+    notebook: InventoryItem = InventoryItem(" sku-104 ", "  Spiral   Notebook ", 25, "ACTIVE")
+
+    # Print normalized attributes from the constructed object.
+    print(notebook.sku_code, notebook.item_name, notebook.stock_quantity, notebook.status)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">3.2 __init__ vs. Factory Classmethods</h4>
+                <p>Keep <code>__init__</code> focused on receiving already-parsed, validated arguments, and use <code>@classmethod</code> factory constructors (such as <code>from_record_string</code>) when parsing external text or raw records. Calling <code>cls(...)</code> inside the classmethod ensures subclasses and invariants are respected automatically.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from __future__ import annotations
+
+class WarehouseRecord:
+    """Demonstrate classmethod factories alongside standard __init__ construction."""
+
+    def __init__(self, code: str, unit_count: int) -&gt; None:
+        """Initialize a warehouse record with validated fields."""
+        # Reject non-string product codes.
+        if not isinstance(code, str):
+            raise TypeError("Product code must be a string.")
+
+        # Trim and uppercase the product code.
+        cleaned_code: str = code.strip().upper()
+
+        # Ensure product code is not empty.
+        if not cleaned_code:
+            raise ValueError("Product code cannot be blank.")
+
+        # Guard against booleans masquerading as integers.
+        if isinstance(unit_count, bool) or not isinstance(unit_count, int):
+            raise TypeError("Unit count must be a non-boolean integer.")
+
+        # Reject negative unit counts.
+        if unit_count &lt; 0:
+            raise ValueError("Unit count cannot be negative.")
+
+        # Assign validated attributes.
+        self.product_code: str = cleaned_code
+        self.unit_count: int = unit_count
+
+    @classmethod
+    def from_pipe_record(cls, record_line: str) -&gt; "WarehouseRecord":
+        """Parse a 'CODE | COUNT' string into a validated WarehouseRecord instance."""
+        # Validate that the input record is a string.
+        if not isinstance(record_line, str):
+            raise TypeError("Record line must be a string.")
+
+        # Partition around the first pipe delimiter.
+        code, separator, count = record_line.partition("|")
+
+        # Require both a delimiter and a non-empty count segment.
+        if not separator or not count.strip():
+            raise ValueError("Record must follow 'CODE | COUNT' format.")
+
+        # Parse the count portion into an integer.
+        try:
+            count: int = int(count.strip())
+        except ValueError as parse_error:
+            raise ValueError(f"Invalid unit count in record: {record_line}.") from parse_error
+
+        # Delegate to cls(...) so __init__ enforces all invariants.
+        return cls(code=code, unit_count=count)
+
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Build an instance from a delimited text record.
+    record: WarehouseRecord = WarehouseRecord.from_pipe_record(" bk-77 | 12 ")
+
+    # Display the parsed record fields.
+    print(record.product_code, record.unit_count)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">3.3 Object Identity (is) vs. Value Equality (==)</h4>
+                <p>Two separate instances can hold identical field values while remaining distinct objects in memory. Defining <code>__eq__</code> lets <code>==</code> compare domain identity or state cleanly, while <code>is</code> still tests whether two variables refer to the exact same instance.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">class BadgeTag:
+    """Compare object identity with 'is' and value equality with '=='."""
+
+    def __init__(self, label: str) -&gt; None:
+        """Initialize a badge tag with a non-empty normalized label."""
+        # Reject non-string label values.
+        if not isinstance(label, str):
+            raise TypeError("Label text must be a string.")
+
+        # Normalize whitespace around the label.
+        cleaned_label: str = " ".join(label.strip().split())
+
+        # Reject empty labels.
+        if not cleaned_label:
+            raise ValueError("Label text cannot be blank.")
+
+        # Store the normalized label.
+        self.label: str = cleaned_label
+
+    def __eq__(self, against: object) -&gt; bool:
+        """Return True when comparing another BadgeTag with the same label."""
+        # Return NotImplemented so Python can handle reverse or non-matching comparisons cleanly.
+        if not isinstance(against, BadgeTag):
+            return NotImplemented
+
+        # Compare normalized label text for value equality.
+        return self.label == against.label
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create two separate BadgeTag instances with matching content.
+    primary_badge: BadgeTag = BadgeTag("Python")
+    trimmed_badge: BadgeTag = BadgeTag("  Python  ")
+    shared_badge_reference: BadgeTag = primary_badge
+
+    # Check value equality (True) and object identity (False for separate instances, True for alias).
+    print("Equal values (==):", primary_badge == trimmed_badge)
+    print("Same object (is) separate:", primary_badge is trimmed_badge)
+    print("Same object (is) alias:", primary_badge is shared_badge_reference)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">3.4 State Transitions and Lifecycle Methods</h4>
+                <p>Rather than letting callers mutate status flags or quantities into contradictory states, expose clear methods that check current state and enforce valid transitions. Properties (<code>@property</code>, setters, and deleters) are used below to guard attribute access and will be covered in detail in Chapter 6.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from enum import Enum
+from typing import Union
+
+class ShipmentStatus(str, Enum):
+    """Allowed lifecycle states for an order shipment."""
+
+    PENDING = "pending"
+    DISPATCHED = "dispatched"
+    CANCELLED = "cancelled"
+
+class OrderShipment:
+    """Manage shipment state transitions while protecting quantity and status invariants."""
+
+    def __init__(self, shipment_id: str, number_of_items: int) -> None:
+        """Initialize a pending shipment with a validated identifier and item count."""
+        # Initialize backing attributes before assigning through properties.
+        self._shipment_id: str = ""
+        self._number_of_items: int = 0
+        self._status: ShipmentStatus = ShipmentStatus.PENDING
+
+        # Assign through property setters so all invariants run in one place.
+        self.id = shipment_id
+        self.number_of_items = number_of_items
+        self.status = ShipmentStatus.PENDING
+
+    @property
+    def id(self) -> str:
+        """Return the normalized shipment identifier."""
+        # Guard against uninitialized or blank identifier state.
+        if not hasattr(self, "_shipment_id") or not self._shipment_id:
+            raise AttributeError("Shipment identifier is not initialized.")
+
+        return self._shipment_id
+
+    @id.setter
+    def id(self, identifier: str) -> None:
+        """Validate and set the normalized shipment identifier while pending."""
+        # Reject non-string identifiers defensively.
+        if not isinstance(identifier, str):
+            raise TypeError("Shipment ID must be a string.")
+
+        # Prevent changing the shipment ID once dispatched or cancelled.
+        if hasattr(self, "_status") and self._status is not ShipmentStatus.PENDING:
+            raise ValueError(
+                f"Cannot modify shipment ID when status is '{self._status.value}'."
+            )
+
+        # Normalize whitespace and casing for consistent lookups.
+        normalized_identifier: str = identifier.strip().upper()
+
+        # Require a non-empty identifier after normalization.
+        if not normalized_identifier:
+            raise ValueError("Shipment ID cannot be blank.")
+
+        self._shipment_id = normalized_identifier
+
+    @id.deleter
+    def id(self) -> None:
+        """Prevent accidental deletion of an active shipment identifier."""
+        # Protect shipment traceability by disallowing identifier deletion.
+        raise RuntimeError("Shipment ID cannot be deleted once created.")
+
+    @property
+    def number_of_items(self) -> int:
+        """Return the validated number of items in the shipment."""
+        # Guard against missing or uninitialized item count state.
+        if not hasattr(self, "_number_of_items") or self._number_of_items is None:
+            raise AttributeError("Item count has been cleared or is uninitialized.")
+
+        return self._number_of_items
+
+    @number_of_items.setter
+    def number_of_items(self, number_of_items: int) -> None:
+        """Validate and set a positive non-boolean item count while pending."""
+        # Prevent item quantity changes after dispatch or cancellation.
+        if hasattr(self, "_status") and self._status is not ShipmentStatus.PENDING:
+            raise ValueError(
+                f"Cannot update item count when status is '{self._status.value}'."
+            )
+
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(number_of_items, bool) or not isinstance(number_of_items, int):
+            raise TypeError("Item count must be a non-boolean integer.")
+
+        # Enforce a strictly positive quantity invariant.
+        if number_of_items <= 0:
+            raise ValueError("Item count must be greater than zero.")
+
+        self._number_of_items = number_of_items
+
+    @number_of_items.deleter
+    def number_of_items(self) -> None:
+        """Clear the item count only if the shipment is cancelled."""
+        # Allow clearing item count only when the shipment has been cancelled.
+        if self._status is not ShipmentStatus.CANCELLED:
+            raise ValueError(
+                f"Cannot delete item count while status is '{self._status.value}'."
+            )
+
+        # Reset item count to zero rather than leaving a dangling attribute.
+        self._number_of_items = 0
+
+    @property
+    def status(self) -> ShipmentStatus:
+        """Return the current shipment lifecycle status."""
+        # Guard against uninitialized or deleted status state.
+        if not hasattr(self, "_status") or self._status is None:
+            raise AttributeError("Shipment status is not initialized.")
+
+        return self._status
+
+    @status.setter
+    def status(self, status: Union[ShipmentStatus, str]) -> None:
+        """Validate and transition shipment status according to allowed rules."""
+        # Convert valid status strings into ShipmentStatus enum members.
+        if isinstance(status, str) and not isinstance(status, ShipmentStatus):
+            try:
+                resolved_status: ShipmentStatus = ShipmentStatus(status.strip().lower())
+            except ValueError as exc:
+                raise ValueError(f"Invalid shipment status '{status}'.") from exc
+        elif isinstance(status, ShipmentStatus):
+            resolved_status = status
+        else:
+            raise TypeError("Shipment status must be a ShipmentStatus or valid status string.")
+
+        # Allow idempotent assignment if the shipment already has the target status.
+        if hasattr(self, "_status") and self._status is resolved_status:
+            return
+
+        # Enforce allowed transitions from PENDING to DISPATCHED or CANCELLED.
+        if hasattr(self, "_status"):
+            if self._status is not ShipmentStatus.PENDING:
+                raise ValueError(
+                    f"Cannot transition status from '{self._status.value}' "
+                    f"to '{resolved_status.value}'."
+                )
+
+            if resolved_status not in (ShipmentStatus.DISPATCHED, ShipmentStatus.CANCELLED):
+                raise ValueError(
+                    f"Unsupported transition from pending to '{resolved_status.value}'."
+                )
+
+        self._status = resolved_status
+
+    @status.deleter
+    def status(self) -> None:
+        """Reset a cancelled shipment back to pending if needed."""
+        # Only cancelled shipments can be reopened to pending via deleter.
+        if self._status is not ShipmentStatus.CANCELLED:
+            raise ValueError(
+                f"Cannot reset status when shipment is '{self._status.value}'."
+            )
+
+        # Restore shipment to pending state.
+        self._status = ShipmentStatus.PENDING
+
+    def dispatch(self) -> None:
+        """Transition a pending shipment to dispatched."""
+        # Delegate transition validation to the status property setter.
+        self.status = ShipmentStatus.DISPATCHED
+
+    def cancel(self) -> None:
+        """Transition a pending shipment to cancelled."""
+        # Delegate transition validation to the status property setter.
+        self.status = ShipmentStatus.CANCELLED
+
+
+# Execute demonstration workflow only when running this module directly.
+if __name__ == "__main__":
+    # Create a shipment and update quantity while still pending.
+    shipment: OrderShipment = OrderShipment("shp-900", 4)
+    shipment.number_of_items = 6
+
+    # Dispatch the shipment and print its public properties.
+    shipment.dispatch()
+
+    print(
+        shipment.id,
+        shipment.number_of_items,
+        shipment.status.value,
+    )
+
+    # Demonstrate deleting item count on a cancelled shipment.
+    cancelled_shipment: OrderShipment = OrderShipment("shp-901", 2)
+    cancelled_shipment.cancel()
+
+    del cancelled_shipment.number_of_items
+
+    print(
+        cancelled_shipment.id,
+        cancelled_shipment.number_of_items,
+        cancelled_shipment.status.value,
+    )</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_02.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Type Hints &amp; Strings
+                </a>
+                <a href="chapter_04.html" class="btn btn-primary btn-sm">
+                    Dataclasses &amp; Slots <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

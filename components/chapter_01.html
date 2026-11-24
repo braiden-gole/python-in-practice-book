@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 1: Setting Up Python - Python in Practice by Braiden Golle." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="A clear, modern, and practical guide to Python programming for intermediate developers by Braiden Gole." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 1: Setting Up Python | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 1: Setting Up Python</h2>
+                <div class="lead mb-4">
+                    Before writing useful Python programs, you need a clean, dependable development environment where you can test ideas quickly, organize scripts, and run code from the command line.
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">1.1 Installing Python Across Platforms</h4>
+                <p>Python runs on Windows, macOS, and Linux. Download the latest stable release of Python 3 from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">python.org</a> or use your system's package manager.</p>
+
+                <!-- Windows Setup Card -->
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-windows me-2"></i>Windows: Official Installer &amp; PATH Setup</h5>
+                        <p class="small mb-2">Installing Python on Windows is straightforward as long as you add it to your system PATH:</p>
+                        <ol class="small mb-2">
+                            <li>Visit <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">python.org/downloads</a> and download the latest Python 3 installer.</li>
+                            <li>Run the installer and check <strong>Add python.exe to PATH</strong> at the bottom of the first screen.</li>
+                            <li>Click <strong>Install Now</strong> and wait for the setup to finish.</li>
+                            <li>Open Command Prompt or PowerShell and verify your installation:<br>
+                            <code>python --version</code></li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- macOS Setup Card -->
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-apple me-2"></i>macOS: Homebrew or Official Installer</h5>
+                        <p class="small mb-2">macOS includes older system tools, so installing a current Python 3 build gives you modern features and clean package management:</p>
+                        <ol class="small mb-2">
+                            <li>Open the <strong>Terminal</strong> app from Applications &gt; Utilities.</li>
+                            <li>Install Python via Homebrew (recommended) or download the macOS installer from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">python.org</a>:<br>
+                            <code>brew install python</code></li>
+                            <li>Verify the installed version in your terminal:<br>
+                            <code>python3 --version</code></li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Linux Setup Card -->
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-ubuntu me-2"></i>Linux: System Package Manager</h5>
+                        <p class="small mb-2">Most Linux distributions include Python 3 or provide it through their package manager:</p>
+                        <ul class="small mb-2">
+                            <li><strong>Ubuntu / Debian / Linux Mint:</strong><br>
+                            <code>sudo apt update &amp;&amp; sudo apt install python3 python3-pip python3-venv</code></li>
+                            <li><strong>Fedora / RHEL:</strong><br>
+                            <code>sudo dnf install python3 python3-pip</code></li>
+                            <li><strong>Arch Linux / Manjaro:</strong><br>
+                            <code>sudo pacman -S python python-pip</code></li>
+                        </ul>
+                        <p class="small mb-0">Verify your installation in the terminal:<br>
+                        <code>python3 --version</code></p>
+                    </div>
+                </div>
+
+                <!-- PyCharm IDE Setup Card -->
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <img src="../svgs/pycharm.svg" width="28" height="28" alt="PyCharm IDE Logo" class="flex-shrink-0">
+                            <h5 class="fw-bold text-primary mb-0">Install the PyCharm IDE</h5>
+                        </div>
+                        <p class="small mb-2">Download and install the <strong>PyCharm IDE</strong> from <a href="https://www.jetbrains.com/pycharm/download/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">jetbrains.com/pycharm/download</a> so you have smart refactoring, type inspection, virtual environment support, and a built-in debugger ready for multi-module Python code:</p>
+                        <ol class="small mb-0">
+                            <li>Go to <a href="https://www.jetbrains.com/pycharm/download/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">jetbrains.com/pycharm/download</a> and download the installer for your operating system.</li>
+                            <li>Run the installer and open your project workspace folder in PyCharm.</li>
+                            <li>Point PyCharm's project interpreter to your Python 3 installation or virtual environment.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">1.2 Exploring the Interactive Shell (REPL)</h4>
+                <p>Python includes an interactive shell often called a <strong>REPL</strong> (Read–Evaluate–Print Loop). To open it, launch your terminal or command prompt and run <code>python</code> (or <code>python3</code> on macOS/Linux) with no script filename after it. When the <code>&gt;&gt;&gt;</code> prompt appears, you can type expressions one line at a time and see the result immediately.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-bash"># 1. Open your terminal or command prompt and launch the REPL
+python
+# Or on systems where Python 3 uses python3:
+python3</code></pre>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">&gt;&gt;&gt; 15 + 27
+42
+&gt;&gt;&gt; "Python " + "in Practice"
+'Python in Practice'
+&gt;&gt;&gt; exit()</code></pre>
+
+                <p class="small text-muted mb-4">
+                    <em>Tip:</em> You can also exit the REPL by pressing <code>Ctrl + Z</code> then <code>Enter</code> on Windows, or <code>Ctrl + D</code> on macOS and Linux. When you want to save multi-line programs, exit the REPL and create a <code>.py</code> file in your code editor instead.
+                </p>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">1.3 Writing and Running Your First Script</h4>
+                <p>Create a project folder for your book exercises, add a file named <code>greet_reader.py</code>, and write a clean entry point with basic input validation.</p>
+
+                <!-- Highlighted Python Code Block -->
+                <pre class="font-monospace small mb-3"><code class="language-python">def greet_reader(reader_name: str) -> str:
+    """Return a clean greeting message for a non-empty reader name."""
+    # Validate that the provided reader name is a string instance.
+    if not isinstance(reader_name, str):
+        raise TypeError("Reader name must be a valid string.")
+
+    # Strip leading and trailing whitespace so blank spaces count as empty.
+    sanitized_reader_name: str = reader_name.strip()
+
+    # Reject empty strings after trimming whitespace.
+    if not sanitized_reader_name:
+        raise ValueError("Reader name cannot be empty.")
+
+    return f"Welcome to Python in Practice, {sanitized_reader_name}!"
+
+
+def main() -> None:
+    """Run the reader greeting workflow with error and cleanup handling."""
+    readers_fullname: str = "Braiden, Gole"
+    greeting: str = ""
+
+    try:
+        # Attempt to build the welcome message from the configured reader name.
+        greeting = greet_reader(readers_fullname)
+    except (TypeError, ValueError) as exception:
+        # Report validation failures without crashing the program driver.
+        print(f"Configuration error: {exception}")
+    finally:
+        # Ensure final status logging runs whether greeting succeeded or failed.
+        print(greeting)
+
+# Run the entry point only when this module is executed directly.
+if __name__ == "__main__":
+    main()</code></pre>
+
+                <p>Save <code>greet_reader.py</code>, open your terminal in that folder, and run your script:</p>
+
+                <!-- Highlighted Bash/CLI Code Block -->
+                <pre class="font-monospace small"><code class="language-bash"># Run on Windows, macOS, or Linux
+python greet_reader.py
+# Or on systems where Python 3 is mapped to python3:
+python3 greet_reader.py</code></pre>
+
+                <p class="small text-muted mb-4">
+                    <em>Why <code>if __name__ == "__main__":</code> matters:</em> It ensures <code>main()</code> runs when you execute the file directly, while letting other scripts import <code>greet_reader()</code> later without running top-level code automatically.
+                </p>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">1.4 Checklist</h4>
+                <p>Before moving on to variables and data types in Chapter 2, make sure each item below works on your machine:</p>
+
+                <ul class="mb-4">
+                    <li class="mb-2"><strong>Python Accessible in Terminal:</strong> Running <code>python --version</code> or <code>python3 --version</code> prints a Python 3 version number.</li>
+                    <li class="mb-2 d-flex align-items-center gap-2"><img src="../svgs/pycharm.svg" width="20" height="20" alt="PyCharm IDE Logo" class="flex-shrink-0"><span><strong>PyCharm IDE Ready:</strong> You downloaded PyCharm from <a href="https://www.jetbrains.com/pycharm/download/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">jetbrains.com/pycharm/download</a> and opened your workspace folder.</span></li>
+                    <li class="mb-2"><strong>REPL Tested:</strong> You opened the interactive shell, evaluated an expression, and exited cleanly.</li>
+                    <li class="mb-2"><strong>First Script Executed:</strong> You created <code>greet_reader.py</code> and ran it from the command line without errors.</li>
+                </ul>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="../index.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Table of Contents
+                </a>
+                <a href="chapter_02.html" class="btn btn-primary btn-sm">
+                    Chapter 02 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core, Python & Bash Grammars -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

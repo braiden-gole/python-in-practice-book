@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 6: Properties, Validations & Descriptor Protocol - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 6: Properties, Validations &amp; Descriptor Protocol | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Using @property getters, setters, and deleters alongside reusable descriptor classes to enforce invariants across Python attributes." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 6: Properties, Validations &amp; Descriptor Protocol | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 6: Properties, Validations &amp; Descriptor Protocol</h2>
+                <div class="lead mb-4">
+                    When callers read, assign, or delete attributes on an object, plain public fields offer no guardrails against invalid data or out-of-order mutations. Python solves this with <strong><code>@property</code></strong> (getters, setters, and deleters) for single-class attributes and the <strong>descriptor protocol</strong> (<code>__get__</code>, <code>__set__</code>, <code>__delete__</code>, and <code>__set_name__</code>) for reusable attribute validation across multiple classes.
+                </div>
+
+                <p><strong>Why properties beat raw attributes:</strong> You can expose a clean attribute interface like <code>shipment.number_of_items</code> while running validation, normalization, or lifecycle checks automatically whenever the value is read, changed, or deleted.</p>
+
+                <p><strong>When to reach for a descriptor:</strong> If the same validation rule such as a non-empty trimmed string or a positive non-boolean integer repeats across many classes or fields, encapsulating that logic in a descriptor class avoids repetitive property boilerplate.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Mechanism</th>
+                                <th scope="col">Key Hooks</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Property Getter</strong></td>
+                                <td><code>@property def attr(self):</code></td>
+                                <td>Computes or returns validated internal state cleanly</td>
+                                <td>Referencing the wrong backing attribute name or mutating state on read</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Property Setter</strong></td>
+                                <td><code>@attr.setter def attr(self, val):</code></td>
+                                <td>Validates types, normalizes values, and guards state transitions on assignment</td>
+                                <td>Forgetting <code>isinstance(val, bool)</code> before checking <code>isinstance(val, int)</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Property Deleter</strong></td>
+                                <td><code>@attr.deleter def attr(self):</code></td>
+                                <td>Controls or blocks <code>del obj.attr</code> instead of leaving dangling attributes</td>
+                                <td>Silently deleting required backing fields that getters assume exist</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data Descriptor</strong></td>
+                                <td><code>__set_name__</code>, <code>__get__</code>, <code>__set__</code>, <code>__delete__</code></td>
+                                <td>Reuses attribute validation and storage rules across multiple classes</td>
+                                <td>Storing per-instance values on <code>self</code> (the descriptor) instead of <code>instance.__dict__</code> or a WeakKeyDictionary</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-sliders me-2"></i>Core Principles of Properties &amp; Descriptors</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Route initialization through setters:</strong> Assigning <code>self.attr = initial_value</code> inside <code>__init__</code> runs the same type and range checks as later updates.</li>
+                            <li class="mb-2"><strong>Handle <code>del obj.attr</code> intentionally:</strong> A deleter can reset a value to a safe default, transition state, or raise an explicit error when deletion is forbidden.</li>
+                            <li class="mb-2"><strong>Keep per-instance data off the descriptor object:</strong> Descriptor instances live on the class, so store per-object values on the target instance rather than on the descriptor itself.</li>
+                            <li class="mb-0"><strong>Use <code>__set_name__</code> for automatic field naming:</strong> Python calls <code>__set_name__(self, owner, name)</code> when the class is created, giving the descriptor its attribute name automatically.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">6.1 Getters, Setters, and Deleters with <code>@property</code></h4>
+                <p>A property groups getter, setter, and deleter methods under one attribute name. That lets you enforce lifecycle rules such as locking edits after dispatch or allowing resets only from a cancelled state while keeping caller code clean.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from enum import Enum
+from typing import Union
+
+class ShipmentStatus(str, Enum):
+    """Allowed lifecycle states for an order shipment."""
+
+    PENDING = "pending"
+    DISPATCHED = "dispatched"
+    CANCELLED = "cancelled"
+
+class OrderShipment:
+    """Manage shipment state transitions using properties, setters, and deleters."""
+
+    def __init__(self, shipment_id: str, number_of_items: int) -&gt; None:
+        """Initialize a pending shipment with validated ID and item count."""
+        # Initialize backing attributes before running property setters.
+        self._shipment_id: str = ""
+        self._number_of_items: int = 0
+        self._status: ShipmentStatus = ShipmentStatus.PENDING
+
+        # Assign through properties so validation runs consistently.
+        self.id = shipment_id
+        self.number_of_items = number_of_items
+        self.status = ShipmentStatus.PENDING
+
+    @property
+    def id(self) -&gt; str:
+        """Return the normalized shipment identifier."""
+        if not hasattr(self, "_shipment_id") or not self._shipment_id:
+            raise AttributeError("Shipment identifier is not initialized.")
+        return self._shipment_id
+
+    @id.setter
+    def id(self, candidate_id: str) -&gt; None:
+        """Validate and normalize the shipment ID while still pending."""
+        if not isinstance(candidate_id, str):
+            raise TypeError("Shipment ID must be a string.")
+
+        if hasattr(self, "_status") and self._status is not ShipmentStatus.PENDING:
+            raise ValueError(f"Cannot modify shipment ID when status is '{self._status.value}'.")
+
+        normalized_id: str = candidate_id.strip().upper()
+        if not normalized_id:
+            raise ValueError("Shipment ID cannot be blank.")
+
+        self._shipment_id = normalized_id
+
+    @id.deleter
+    def id(self) -&gt; None:
+        """Prevent deleting an active shipment identifier."""
+        raise RuntimeError("Shipment ID cannot be deleted once created.")
+
+    @property
+    def number_of_items(self) -&gt; int:
+        """Return the number of items in the shipment."""
+        if not hasattr(self, "_number_of_items") or self._number_of_items is None:
+            raise AttributeError("Item count is not initialized.")
+        return self._number_of_items
+
+    @number_of_items.setter
+    def number_of_items(self, item_count: int) -&gt; None:
+        """Validate and set a positive non-boolean item count while pending."""
+        if hasattr(self, "_status") and self._status is not ShipmentStatus.PENDING:
+            raise ValueError(f"Cannot update item count when status is '{self._status.value}'.")
+
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(item_count, bool) or not isinstance(item_count, int):
+            raise TypeError("Item count must be a non-boolean integer.")
+
+        if item_count &lt;= 0:
+            raise ValueError("Item count must be greater than zero.")
+
+        self._number_of_items = item_count
+
+    @number_of_items.deleter
+    def number_of_items(self) -&gt; None:
+        """Reset item count to zero only when the shipment is cancelled."""
+        if self._status is not ShipmentStatus.CANCELLED:
+            raise ValueError(f"Cannot clear item count when status is '{self._status.value}'.")
+        self._number_of_items = 0
+
+    @property
+    def status(self) -&gt; ShipmentStatus:
+        """Return the current shipment status."""
+        if not hasattr(self, "_status") or self._status is None:
+            raise AttributeError("Shipment status is not initialized.")
+        return self._status
+
+    @status.setter
+    def status(self, next_status: Union[ShipmentStatus, str]) -&gt; None:
+        """Validate and transition shipment status across allowed states."""
+        if isinstance(next_status, str) and not isinstance(next_status, ShipmentStatus):
+            try:
+                resolved_status: ShipmentStatus = ShipmentStatus(next_status.strip().lower())
+            except ValueError as status_error:
+                raise ValueError(f"Invalid shipment status '{next_status}'.") from status_error
+        elif isinstance(next_status, ShipmentStatus):
+            resolved_status = next_status
+        else:
+            raise TypeError("Shipment status must be a ShipmentStatus or status string.")
+
+        if hasattr(self, "_status") and self._status is resolved_status:
+            return
+
+        if hasattr(self, "_status"):
+            if self._status is not ShipmentStatus.PENDING:
+                raise ValueError(
+                    f"Cannot transition status from '{self._status.value}' to '{resolved_status.value}'."
+                )
+            if resolved_status not in (ShipmentStatus.DISPATCHED, ShipmentStatus.CANCELLED):
+                raise ValueError(f"Unsupported transition to '{resolved_status.value}'.")
+
+        self._status = resolved_status
+
+    @status.deleter
+    def status(self) -&gt; None:
+        """Reopen a cancelled shipment back to pending."""
+        if self._status is not ShipmentStatus.CANCELLED:
+            raise ValueError(f"Cannot reset status when shipment is '{self._status.value}'.")
+        self._status = ShipmentStatus.PENDING
+
+    def dispatch(self) -&gt; None:
+        """Mark a pending shipment as dispatched."""
+        self.status = ShipmentStatus.DISPATCHED
+
+    def cancel(self) -&gt; None:
+        """Mark a pending shipment as cancelled."""
+        self.status = ShipmentStatus.CANCELLED
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Exercise getter, setter, and deleter behavior across a shipment lifecycle.
+    order_pkg: OrderShipment = OrderShipment("shp-900", 4)
+
+    order_pkg.number_of_items = 6
+    order_pkg.dispatch()
+
+    print(order_pkg.id, order_pkg.number_of_items, order_pkg.status.value)
+
+    cancelled_pkg: OrderShipment = OrderShipment("shp-901", 3)
+    cancelled_pkg.cancel()
+
+    del cancelled_pkg.number_of_items
+
+    print(cancelled_pkg.id, cancelled_pkg.number_of_items, cancelled_pkg.status.value)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">6.2 Reusable Data Descriptors with <code>__set_name__</code></h4>
+                <p>When a descriptor defines both <code>__get__</code> and <code>__set__</code>, Python treats it as a <strong>data descriptor</strong>, giving it priority over instance dictionary lookups. Using <code>__set_name__</code> captures the attribute name automatically so you can reuse one descriptor across multiple fields and classes.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Optional, Type
+
+class PositiveIntegerField:
+    """Data descriptor enforcing positive non-boolean integer values per instance."""
+
+    def __init__(self, allow_zero: bool = False) -&gt; None:
+        """Configure whether zero is permitted alongside positive integers."""
+        # Reject booleans for the allow_zero configuration flag.
+        if isinstance(allow_zero, bool):
+            self._allow_zero: bool = allow_zero
+        else:
+            raise TypeError("allow_zero must be a boolean.")
+
+        self._public_name: str = ""
+        self._storage_attr: str = ""
+
+    def __set_name__(self, owner_class: Type[object], attribute_name: str) -&gt; None:
+        """Record the bound attribute name when the descriptor is attached to a class."""
+        # Derive a private storage key on the target instance.
+        self._public_name = attribute_name
+        self._storage_attr = f"_desc_{attribute_name}"
+
+    def __get__(self, instance_obj: Optional[object], owner_class: Type[object]) -&gt; object:
+        """Return the descriptor for class access or the stored value for instance access."""
+        # Return the descriptor itself when accessed via the class (e.g., Item.quantity).
+        if instance_obj is None:
+            return self
+
+        if not self._storage_attr or not hasattr(instance_obj, self._storage_attr):
+            raise AttributeError(f"Attribute '{self._public_name}' is not initialized.")
+
+        return getattr(instance_obj, self._storage_attr)
+
+    def __set__(self, instance_obj: object, candidate_value: object) -&gt; None:
+        """Validate candidate_value and store it on the target instance."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(candidate_value, bool) or not isinstance(candidate_value, int):
+            raise TypeError(f"'{self._public_name}' must be a non-boolean integer.")
+
+        minimum_allowed: int = 0 if self._allow_zero else 1
+
+        if candidate_value &lt; minimum_allowed:
+            raise ValueError(
+                f"'{self._public_name}' must be at least {minimum_allowed}."
+            )
+
+        setattr(instance_obj, self._storage_attr, candidate_value)
+
+    def __delete__(self, instance_obj: object) -&gt; None:
+        """Prevent deleting validated numeric fields by default."""
+        raise AttributeError(f"Cannot delete descriptor attribute '{self._public_name}'.")
+
+class WarehouseBox:
+    """Example model reusing PositiveIntegerField across two numeric attributes."""
+
+    # Reuse the same descriptor class for unit quantity and priority weight.
+    units_count = PositiveIntegerField(allow_zero=False)
+    priority_rank = PositiveIntegerField(allow_zero=True)
+
+    def __init__(self, units_count: int, priority_rank: int) -&gt; None:
+        """Initialize validated unit count and priority rank."""
+        self.units_count = units_count
+        self.priority_rank = priority_rank
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create two boxes and verify independent per-instance values.
+    box: WarehouseBox = WarehouseBox(units_count=10, priority_rank=0)
+    warehouse_box: WarehouseBox = WarehouseBox(units_count=3, priority_rank=2)
+
+    print("First box:", box.units_count, box.priority_rank)
+    print("Second box:", warehouse_box.units_count, warehouse_box.priority_rank)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">6.3 Normalized String Descriptor for Clean Text Fields</h4>
+                <p>Descriptors can also normalize strings, trimming whitespace, enforcing casing, and rejecting blank values so every model using that field stores consistent data automatically.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Optional, Type
+
+class UppercaseCodeField:
+    """Data descriptor that validates non-empty strings and normalizes them to uppercase."""
+
+    def __init__(self, minimum_length: int = 1) -> None:
+        """Configure minimum character length after trimming whitespace."""
+        # Reject booleans because bool subclasses int in Python.
+        if isinstance(minimum_length, bool) or not isinstance(minimum_length, int):
+            raise TypeError("minimum_length must be a non-boolean integer.")
+
+        # Enforce a positive minimum length for validated codes.
+        if minimum_length < 1:
+            raise ValueError("minimum_length must be at least 1.")
+
+        # Store minimum length and initialize attribute names bound later.
+        self._minimum_length: int = minimum_length
+        self._field_name: str = ""
+        self._internal_attr: str = ""
+
+    def __set_name__(self, owner_class: Type[object], attribute_name: str) -> None:
+        """Store field name metadata when bound to a class."""
+        # Save public attribute name and backing private attribute name.
+        self._field_name = attribute_name
+        self._internal_attr = f"_code_{attribute_name}"
+
+    def __get__(self, instance_obj: Optional[object], owner_class: Type[object]) -> object:
+        """Return the descriptor on class access or the stored uppercase string on instances."""
+        # Return the descriptor object itself when accessed on the class.
+        if instance_obj is None:
+            return self
+
+        # Fail clearly if the backing attribute has not been assigned yet.
+        if not self._internal_attr or not hasattr(instance_obj, self._internal_attr):
+            raise AttributeError(f"Code field '{self._field_name}' is not initialized.")
+
+        # Read and return the normalized code stored on the instance.
+        return getattr(instance_obj, self._internal_attr)
+
+    def __set__(self, instance_obj: object, raw_code: object) -> None:
+        """Validate, trim, uppercase, and store the code on the target instance."""
+        # Reject non-string inputs before attempting string operations.
+        if not isinstance(raw_code, str):
+            raise TypeError(f"'{self._field_name}' must be a string.")
+
+        # Strip surrounding whitespace and convert characters to uppercase.
+        normalized_code: str = raw_code.strip().upper()
+
+        # Reject codes shorter than the configured minimum length.
+        if len(normalized_code) < self._minimum_length:
+            raise ValueError(
+                f"'{self._field_name}' must be at least {self._minimum_length} characters."
+            )
+
+        # Persist the validated code onto the instance backing attribute.
+        setattr(instance_obj, self._internal_attr, normalized_code)
+
+class BinLocation:
+    """Storage location using UppercaseCodeField for aisle and rack codes."""
+
+    # Bind two descriptor instances for aisle and rack identifiers.
+    aisle_code = UppercaseCodeField(minimum_length=2)
+    rack_code = UppercaseCodeField(minimum_length=2)
+
+    def __init__(self, aisle_code: str, rack_code: str) -> None:
+        """Initialize a bin location with normalized aisle and rack codes."""
+        # Trigger descriptor validation and normalization during initialization.
+        self.aisle_code = aisle_code
+        self.rack_code = rack_code
+
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create a bin location with mixed-case padded inputs.
+    storage_bin: BinLocation = BinLocation(aisle_code=" a12 ", rack_code=" r04 ")
+
+    # Print the normalized aisle and rack codes.
+    print("Location:", storage_bin.aisle_code, storage_bin.rack_code)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_05.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Dunder Protocols &amp; Containers
+                </a>
+                <a href="chapter_07.html" class="btn btn-primary btn-sm">
+                    Chapter 07 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

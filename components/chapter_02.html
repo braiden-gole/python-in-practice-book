@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 2: Variables, Data Types, Strings, and Type Hints - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 2: Variables, Data Types, Strings, and Type Hints | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="A clear, modern, and practical beginner's guide to learning Python programming from the ground up by Braiden Gole." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 2: Type Hints, Data Types, Variables, and strings | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 2: Type Hints, Data Types, Variables, and Strings</h2>
+                <div class="lead mb-4">
+                    Once your Python environment is ready, the next building block is storing and shaping information. In Python, almost everything you work with is an object, and variables act as named labels pointing to those objects in memory. Pairing variables with <strong>type hints</strong> and <strong>defensive validation</strong> makes your code clearer to read and much easier to maintain as programs grow.
+                </div>
+
+                <p><strong>What type hints are:</strong> Type hints are optional annotations such as <code>variable: Type</code>, <code>parameter: Type</code>, and <code>-&gt; ReturnType</code> that describe the expected data types of your values, function arguments, and return values.</p>
+
+                <p><strong>Modern syntax vs. <code>typing</code>:</strong> Python 3.10+ lets you write union types cleanly with <code>|</code> (like <code>str | None</code> or <code>int | float</code>) and collection hints directly with <code>list[str]</code> or <code>dict[str, int]</code>. <strong>Older codebases</strong> or specialized cases also use constructs imported from the <code>typing</code> module, as summarized below.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Import for Older Codebases</th>
+                                <th scope="col">Legacy Example</th>
+                                <th scope="col">Modern Equivalent</th>
+                                <th scope="col">Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>from typing import Optional</code></td>
+                                <td><code>Optional[str]</code></td>
+                                <td><code>str | None</code></td>
+                                <td>A value of that type or <code>None</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Union</code></td>
+                                <td><code>Union[int, float]</code></td>
+                                <td><code>int | float</code></td>
+                                <td>Any one of several allowed types</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import List</code></td>
+                                <td><code>List[str]</code></td>
+                                <td><code>list[str]</code></td>
+                                <td>List of items of a given type</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Dict</code></td>
+                                <td><code>Dict[str, int]</code></td>
+                                <td><code>dict[str, int]</code></td>
+                                <td>Dictionary mapping keys to values</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Tuple</code></td>
+                                <td><code>Tuple[str, int]</code></td>
+                                <td><code>tuple[str, int]</code></td>
+                                <td>Fixed-length or variable-length tuple</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Set</code></td>
+                                <td><code>Set[str]</code></td>
+                                <td><code>set[str]</code></td>
+                                <td>Set of unique items of a given type</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import FrozenSet</code></td>
+                                <td><code>FrozenSet[int]</code></td>
+                                <td><code>frozenset[int]</code></td>
+                                <td>Immutable set of items</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Sequence</code></td>
+                                <td><code>Sequence[str]</code></td>
+                                <td><code>collections.abc.Sequence[str]</code></td>
+                                <td>Ordered read-only sequence (list, tuple, str)</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Mapping</code></td>
+                                <td><code>Mapping[str, int]</code></td>
+                                <td><code>collections.abc.Mapping[str, int]</code></td>
+                                <td>Read-only key-value mapping</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Iterable, Iterator</code></td>
+                                <td><code>Iterable[int]</code> / <code>Iterator[str]</code></td>
+                                <td><code>collections.abc.Iterable[int]</code></td>
+                                <td>Objects you can loop over or step through</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Callable</code></td>
+                                <td><code>Callable[[int, str], bool]</code></td>
+                                <td><code>collections.abc.Callable[[int, str], bool]</code></td>
+                                <td>Functions or callables with argument and return types</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Any</code></td>
+                                <td><code>Any</code></td>
+                                <td><code>Any</code> (still from <code>typing</code>)</td>
+                                <td>Opts out of static type checking for that value</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import TypeVar, Generic</code></td>
+                                <td><code>TypeVar("T")</code></td>
+                                <td><code>TypeVar</code> / PEP 695 <code>[T]</code> (3.12+)</td>
+                                <td>Generic types and reusable functions</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Literal</code></td>
+                                <td><code>Literal["draft", "pub"]</code></td>
+                                <td><code>Literal["draft", "pub"]</code> (still from <code>typing</code>)</td>
+                                <td>Restricts a value to specific literal values</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import TypedDict</code></td>
+                                <td><code>TypedDict("Book", {"title": str})</code></td>
+                                <td><code>TypedDict</code> (still from <code>typing</code>)</td>
+                                <td>Dictionary with fixed keys and value types</td>
+                            </tr>
+                            <tr>
+                                <td><code>from typing import Protocol</code></td>
+                                <td><code>Protocol</code></td>
+                                <td><code>Protocol</code> (still from <code>typing</code>)</td>
+                                <td>Structural ("duck") typing interfaces</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p><strong>Why they are used:</strong> Teams and individual developers use type hints to make dynamic Python code explicit about data contracts without sacrificing Python's flexibility. Because Python does not enforce type hints at runtime on its own, developers pair them with static type checkers (such as <code>mypy</code> or <code>pyright</code>) and runtime checks like <code>isinstance()</code>.</p>
+
+                <p><strong>Using <code>from __future__ import annotations</code>:</strong> When placed as the very first statement at the top of a Python module, <code>from __future__ import annotations</code> tells Python to store type hints as strings instead of evaluating them immediately at import time. This lets you reference classes or types defined later in the file (forward references) and helps avoid runtime evaluation issues with newer or postponed type expressions.</p>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-check2-circle me-2"></i>Why Type Hints Are Useful</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Self-documenting code:</strong> Reading a function signature immediately shows what inputs it expects and what type it returns without digging through the entire body.</li>
+                            <li class="mb-2"><strong>Earlier bug detection:</strong> Static analysis tools catch mismatched types, accidental <code>None</code> access, and invalid arguments before you even run the program.</li>
+                            <li class="mb-2"><strong>Better editor support:</strong> Code editors and IDEs use type hints to provide accurate autocomplete suggestions, method hints, and inline warnings.</li>
+                            <li class="mb-0"><strong>Safer refactoring:</strong> Changing a data shape or return type highlights every caller that needs updating, reducing silent regressions in larger codebases.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-code-slash me-2"></i>Common Type Hint Examples</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Postponed annotations (top of file):</strong> <code>from __future__ import annotations</code></li>
+                            <li class="mb-2"><strong>Integer:</strong> <code>chapter_number: int = 2</code></li>
+                            <li class="mb-2"><strong>Float:</strong> <code>reading_time_minutes: float = 6.5</code></li>
+                            <li class="mb-2"><strong>String:</strong> <code>book_title: str = "Python in Practice"</code></li>
+                            <li class="mb-2"><strong>Boolean:</strong> <code>is_published: bool = True</code></li>
+                            <li class="mb-2"><strong>Optional (modern 3.10+):</strong> <code>subtitle_text: str | None = None</code></li>
+                            <li class="mb-2"><strong>Optional (<code>typing</code>):</strong> <code>from typing import Optional</code> followed by <code>subtitle_text: Optional[str] = None</code></li>
+                            <li class="mb-2"><strong>Union (modern 3.10+):</strong> <code>score: int | float = 95</code></li>
+                            <li class="mb-2"><strong>Union (<code>typing</code>):</strong> <code>from typing import Union</code> followed by <code>numeric_score: Union[int, float] = 95</code></li>
+                            <li class="mb-2"><strong>List of strings:</strong> <code>chapter_topics: list[str] = ["Variables", "Strings"]</code></li>
+                            <li class="mb-2"><strong>Dictionary:</strong> <code>section_counts: dict[str, int] = {"basics": 4}</code></li>
+                            <li class="mb-2"><strong>Function returning a value:</strong> <code>def format_label(chapter_number: int) -&gt; str: return f"Chapter {chapter_number}"</code></li>
+                            <li class="mb-0"><strong>Function returning nothing:</strong> <code>def log_chapter_status(chapter_number: int) -&gt; None: print(chapter_number)</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">2.1 Variables and How Assignment Works</h4>
+                <p>Unlike some lower-level languages where a variable is a fixed box of memory with a rigid size, a Python variable is a <strong>name bound to an object</strong>. When you assign a value with <code>=</code>, Python creates or locates the object first and then attaches the variable name to it.</p>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-tag me-2"></i>Key Assignment Rules</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Dynamic rebinding:</strong> The same variable name can later point to a different value or even a different type.</li>
+                            <li class="mb-2"><strong>Descriptive naming:</strong> Use clear, descriptive <code>snake_case</code> names that explain what the value represents in your program rather than vague single letters.</li>
+                            <li class="mb-0"><strong>Constants by convention:</strong> Names in <code>UPPER_SNAKE_CASE</code> signal values intended to stay fixed throughout execution.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">def is_integer(value: object) -&gt; bool:
+    """Checks whether the value is and integer and not a boolean."""
+    return not isinstance(value, bool) and isinstance(value, int)
+
+def in_range(minimum: int, maximum: int, value: int) -&gt; bool:
+    """Determines if the index is within bounds."""
+    if not all(is_integer(index) for index in (minimum, maximum, value)):
+        raise TypeError("Minimum, maximum, and value mus all be integers.")
+    
+    # Reject inverted bounds so comparisons always make sense.
+    if minimum &gt; maximum:
+        raise ValueError("Minimum bound cannot be greater than maximum.") 
+
+    return minimum &lt;= value &lt;= maximum
+
+def retrieve_number(prompt_message: str) -&gt; int:
+    """This is responsible for collecting a valid integer."""
+    if not isinstance(prompt_message, str):
+        raise TypeError("Prompt message must be a string.")
+
+    return int(input(prompt_message))
+
+def main() -&gt; None:
+    """Run the interactive loop that collects and validates a number."""
+    cycle: bool = True
+
+    within_reach: bool = False
+
+    # Cycle until we receive a valid integer that is within range.
+    while cycle: 
+        try:
+            # Keep cycling if we dont retrieve a number.
+            number: int = retrieve_number("Enter in a number: ")
+
+            # Keep cycling if we dont have a number in a valid range.
+            within_reach = in_range(0, 100, number)
+
+            cycle = False
+        except (TypeError, ValueError):
+            print("Please enter in a valid integer that is within bounds.")
+    
+    # Pythons Ternary statement.
+    message: str = ("The number is within valid bounds." if within_reach else "The number is not in valid range.")
+
+    # Feedback.
+    print(message)
+
+# Execute the entry point only when this file is run directly as a script.
+if __name__ == "__main__":
+    main()</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">2.2 Core Built-in Data Types</h4>
+                <p>Every value in Python has a type that determines what operations are valid on it. You can inspect any object's type at runtime with <code>type(value)</code> or check it safely with <code>isinstance(value, ExpectedType)</code>.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Data Type</th>
+                                <th scope="col">Type Hint</th>
+                                <th scope="col">Example Literal</th>
+                                <th scope="col">Typical Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Integer</strong></td>
+                                <td><code>int</code></td>
+                                <td><code>42</code>, <code>-7</code>, <code>1_000</code></td>
+                                <td>Counts, indices, page numbers, loop limits</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Float</strong></td>
+                                <td><code>float</code></td>
+                                <td><code>19.99</code>, <code>-0.5</code>, <code>3.0</code></td>
+                                <td>Prices, measurements, ratios, averages</td>
+                            </tr>
+                            <tr>
+                                <td><strong>String</strong></td>
+                                <td><code>str</code></td>
+                                <td><code>"Python"</code>, <code>'Hello'</code></td>
+                                <td>Names, messages, file paths, user input</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Boolean</strong></td>
+                                <td><code>bool</code></td>
+                                <td><code>True</code>, <code>False</code></td>
+                                <td>Feature flags, validation results, conditions</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NoneType</strong></td>
+                                <td><code>None</code> (in <code>X | None</code>)</td>
+                                <td><code>None</code></td>
+                                <td>Missing values, uninitialized or optional results</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="small text-muted mb-3">
+                    <em>Important nuances:</em> Booleans are a subclass of <code>int</code> (<code>True == 1</code> and <code>False == 0</code>), so check <code>isinstance(value, bool)</code> before <code>isinstance(value, int)</code> when distinguishing them. Binary floats approximate decimal fractions (such as <code>0.1 + 0.2</code>), so use <code>round()</code> for display or <code>decimal.Decimal</code> for exact financial values, and use <code>None</code> intentionally to represent missing or optional data.
+                </p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import math
+
+from decimal import Decimal, InvalidOperation
+
+def inventory_line(quantity: int, unit_price: str,
+                   discount: float, is_featured: bool, aisle: str | None) -&gt; str:
+    """Validate inventory line inputs and return a formatted summary string."""
+    # Check bool first because bool is a subclass of int in Python.
+    if isinstance(quantity, bool) or not isinstance(quantity, int):
+        raise TypeError("Quantity must be a non-boolean integer.")
+
+    # Reject zero or negative quantities for active line items.
+    if quantity &lt;= 0:
+        raise ValueError("Quantity must be a non-negative integer.")
+
+    # Ensure unit price text is a non-empty string before Decimal conversion.
+    if not isinstance(unit_price, str) or not unit_price.strip():
+        raise TypeError("Unit price must be a non-empty string.")
+
+    # Remove surrounding whitespace and any leading dollar sign from the price text.
+    cleaned_price: str = unit_price.strip().removeprefix("$").strip()
+
+    # Guard against strings that become empty after stripping currency symbols and spaces.
+    if not cleaned_price:
+        raise ValueError("Unit price must be a non-empty string.")
+
+    try:
+        # Use Decimal for exact base-10 currency math instead of binary float.
+        exact_unit_price: Decimal = Decimal(cleaned_price)
+    except InvalidOperation as exception:
+        # Chain the decimal parsing failure onto a descriptive ValueError.
+        raise ValueError(f"Invalid decimal string for unit price: {unit_price}.") from exception
+
+    # Confirm the parsed price is finite and strictly positive.
+    if not exact_unit_price.is_finite() or exact_unit_price &lt;= Decimal("0"):
+        raise ValueError("Unit price must be a finite positive decimal.")
+
+    # Ensure discount is a plain number rather than a boolean or non-numeric type.
+    if isinstance(discount, bool) or not isinstance(discount, (int, float)):
+        raise TypeError("Discount rate must be a numeric value.")
+
+    # Normalize the discount fraction to a standard float for range checking.
+    normalized_discount: float = float(discount)
+
+    # Verify the discount rate is finite and falls within the unit interval.
+    if not math.isfinite(normalized_discount) or not (0.0 &lt;= normalized_discount &lt;= 1.0):
+        raise ValueError("Discount rate must be a finite number between 0.0 and 1.0.")
+
+    # Enforce an explicit boolean type for the featured flag.
+    if not isinstance(is_featured, bool):
+        raise TypeError("Featured item flag must be a boolean.")
+
+    # Allow None or a string when validating the optional aisle identifier.
+    if aisle is not None and not isinstance(aisle, str):
+        raise TypeError("Aisle must be a non-empty string or None.")
+
+    # Compute the unadjusted line subtotal from exact unit price and quantity.
+    line_subtotal: Decimal = exact_unit_price * Decimal(quantity)
+
+    # Convert the discount fraction into a rounded percentage value.
+    discount_percent: float = round(float(discount) * 100.0, 1)
+
+    # Select the display tag based on whether the item is featured.
+    featured_badge: str = "[FEATURED]" if is_featured else "[STANDARD]"
+
+    # Fall back to a default label when no non-blank aisle string is provided.
+    aisle_label: str = aisle.strip() if aisle and aisle.strip() else "Unassigned"
+
+    # Assemble and return the final single-line inventory summary string.
+    return (
+        f"{featured_badge} Quantity: {quantity} | "
+        f"Subtotal: ${line_subtotal:.2f} | "
+        f"Discount: {discount_percent:.2f} | "
+        f"Aisle: {aisle_label}"
+    )
+
+# Run a sample execution when invoked directly as a script.
+if __name__ == "__main__":
+    # Demonstrate binary floating-point addition alongside rounding.
+    binary_sum: float = 0.1 + 0.2
+    rounded_sum: float = round(binary_sum, 2)
+
+    # Build a sample inventory line using example arguments.
+    summary: str = inventory_line(
+        quantity=3,
+        unit_price="$14.99",
+        discount=0.15,
+        is_featured=True,
+        aisle="B-12"
+    )
+
+    # Output the formatted summary to standard output.
+    print(summary)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">2.3 Working with Strings</h4>
+                <p>Strings (<code>str</code>) are ordered sequences of Unicode characters. In Python, strings are <strong>immutable</strong>, meaning once a string object is created, its characters cannot be modified in place methods like <code>.strip()</code>, <code>.lower()</code>, and <code>.replace()</code> return a <strong>new</strong> string instead.</p>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-fonts me-2"></i>Essential String Operations</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Indexing and slicing:</strong> Access single characters with <code>text[0]</code> or <code>text[-1]</code> (from the end), and extract substrings with <code>text[start:end:step]</code> without raising an <code>IndexError</code> on out-of-range bounds.</li>
+                            <li class="mb-2"><strong>Cleaning and normalization:</strong> Use <code>.strip()</code> to trim outer whitespace, <code>.casefold()</code> for case-insensitive comparisons, and <code>.split()</code> / <code>.join()</code> to break apart or assemble text.</li>
+                            <li class="mb-0"><strong>f-strings (formatted string literals):</strong> Embed expressions directly inside <code>{}</code> braces, including format specifiers like <code>:.2f</code> for two decimal places.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">def format_member_badge(display_name: str, membership_tier: str, discount_rate: float) -&gt; str:
+    """Clean raw string inputs and return a formatted membership badge."""
+    # Guard against non-string display names.
+    if not isinstance(display_name, str):
+        raise TypeError("Display name must be a string.")
+
+    # Guard against non-string membership tiers.
+    if not isinstance(membership_tier, str):
+        raise TypeError("Membership tier must be a string.")
+
+    # Guard against invalid discount percentages.
+    if isinstance(discount_rate, bool) or not isinstance(discount_rate, (int, float)):
+        raise TypeError("Discount rate must be a number.")
+
+    # Clamp or reject out-of-range discount rates.
+    if discount_rate &lt; 0.0 or discount_rate &gt; 1.0:
+        raise ValueError("Discount rate must be between 0.0 and 1.0.")
+
+    # Trim outer whitespace and collapse repeated internal spaces in the display name.
+    cleaned_display_name: str = " ".join(display_name.strip().split())
+
+    # Normalized membership tier casing for consistent display.
+    normalized_tier: str = membership_tier.strip().title()
+
+    # Reject empty strings after trimming whitespace.
+    if not cleaned_display_name:
+        raise ValueError("Display name cannot be blank.")
+
+    # Default empty tier labels to Standard.
+    if not normalized_tier:
+        normalized_tier = "Standard"
+
+    # Collect uppercase first letters from each word token.
+    initials: list[str] = []
+
+    # Iterarte over split tokens to build the list of initials.
+    for token in cleaned_display_name.split(" "):
+        # Append the upppercase initial when the token is non-empty.
+        if token:
+            initials.append(token[0].upper())
+        else:
+            # Skip empty tokens caused by spacing.
+            continue
+
+    # Join collected initials or falll back to a question mark if empty.
+    if initials:
+        name_initials: str = "".join(initials)
+    else:
+        # Use a fallbach character when no initials are available.
+        name_initials = "?"
+
+    # Convert the discount fraction into a percentage value.
+    discount_percent: float = float(discount_rate) * 100.0
+
+    # Assemble and return the formatted subscriber badge string.
+    return (
+        f"({name_initials}) {cleaned_display_name} — "
+        f"{normalized_tier} Member ({discount_percent:.0f}% off)"
+    )
+
+if __name__ == "__main__":
+    # Format a sample subscriber badge with extra whitespace and lowercase tier.
+    badge_text: str = format_member_badge("  avery   chen  ", "pro", 0.25)
+
+    # Feedback.
+    print(badge_text)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">2.4 String Manipulation in Practice</h4>
+                <p>Chaining string methods such as <code>.split()</code>, <code>.strip()</code>, <code>.casefold()</code>, <code>.replace()</code>, and <code>.join()</code> turns messy, uneven text into clean, consistent strings.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">def clean_slugs(tag: str, delimiter: str = ",", number_of_slugs: int = 5, joiner: str = " | ") -&gt; str:
+    """Normalize messy delimited text into hyphenated lowercase slugs and join them."""
+    # Reject non-string tag expressions before performing string operations.
+    if not isinstance(tag, str):
+        raise TypeError("Raw tag expression must be a string.")
+
+    # Reject non-string or empty item delimiters.
+    if not isinstance(delimiter, str) or not delimiter:
+        raise ValueError("Item delimiter must be a non-empty string.")
+
+    # Reject non-string or empty output joiners.
+    if not isinstance(joiner, str) or not joiner:
+        raise ValueError("Output joiner must be a non-empty string.")
+
+    # Reject booleans and non-integer values for maximum slug count.
+    if isinstance(number_of_slugs, bool) or not isinstance(number_of_slugs, int):
+        raise TypeError("Maximum slug count must be an integer.")
+
+    # Require a strictly positive slug limit.
+    if number_of_slugs &lt;= 0:
+        raise ValueError("Maximum slug count must be greater than zero.")
+
+    # Map unwanted punctuation characters to spaces so words stay separated cleanly.
+    punctuation_table: dict[int, str] = str.maketrans(
+        {
+            "_": " ",
+            "/": " ",
+            "\\": " ",
+            ":": " ",
+            ";": " ",
+            ".": " ",
+            "!": " ",
+            "?": " ",
+            "#": "",
+            "@": "",
+        }
+    )
+
+    normalized_slug_list: list[str] = []
+    seen_slug_keys: set[str] = set()
+
+    # Split the raw expression by delimiter and transform each text segment.
+    for segment in tag.split(delimiter):
+        # Trim outer whitespace and remove optional leading or trailing brackets.
+        trimmed_segment: str = (
+            segment.strip()
+            .removeprefix("[")
+            .removesuffix("]")
+            .strip()
+        )
+
+        # If a segment includes an assignment or colon label, keep the value after the separator.
+        if "=" in trimmed_segment:
+            _, _, trimmed_segment = trimmed_segment.partition("=")
+            trimmed_segment = trimmed_segment.strip()
+
+        # Translate punctuation into spacing or removal, then collapse repeated whitespace.
+        translated_segment: str = trimmed_segment.translate(punctuation_table)
+        collapsed_words: str = " ".join(translated_segment.split())
+
+        # Case-fold for reliable Unicode comparisons and convert internal spaces to single hyphens.
+        folded_text: str = collapsed_words.casefold()
+
+        hyphenated_slug: str = "-".join(
+            word_part for word_part in folded_text.split(" ") if word_part
+        )
+
+        # Collapse accidental consecutive hyphens and trim edge hyphens via slicing.
+        while "--" in hyphenated_slug:
+            hyphenated_slug = hyphenated_slug.replace("--", "-")
+
+        if hyphenated_slug.startswith("-"):
+            hyphenated_slug = hyphenated_slug[1:]
+
+        if hyphenated_slug.endswith("-"):
+            hyphenated_slug = hyphenated_slug[:-1]
+
+        # Store non-empty unique slugs while preserving first-seen order.
+        if hyphenated_slug and hyphenated_slug not in seen_slug_keys:
+            seen_slug_keys.add(hyphenated_slug)
+            normalized_slug_list.append(hyphenated_slug)
+
+        # Stop processing once the requested slug cap is reached.
+        if len(normalized_slug_list) &gt;= number_of_slugs:
+            break
+
+    # Combine the resulting slug strings using the requested output joiner.
+    return joiner.join(normalized_slug_list)
+
+
+# Run a demonstration when executed directly as a script.
+if __name__ == "__main__":
+    # Transform noisy input text into clean, hyphenated slug segments.
+    slug: str = clean_slugs(
+        "  [topic = Python_3.12!!] ,  #Type__Hints  , python 3.12 ,  String   Methods//Slice  , ",
+        delimiter=",",
+        number_of_slugs=3,
+        joiner=" | ",
+    )
+
+    # Print the resulting formatted string.
+    print(slug)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_01.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Setting Up Python
+                </a>
+                <a href="chapter_03.html" class="btn btn-primary btn-sm">
+                    Chapter 03 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 15: Thread-Safe Objects, Async Clients & Fakes in pytest - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 15: Thread-Safe Objects, Async Clients &amp; Fakes in pytest | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Synchronizing shared object state with locks, building async service classes, and testing with protocol-compliant fakes and pytest." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 15: Thread-Safe Objects, Async Clients &amp; Fakes in pytest | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 15: Thread-Safe Objects, Async Clients &amp; Fakes in pytest</h2>
+                <div class="lead mb-4">
+                    Concurrent code breaks in subtle ways when multiple threads mutate shared object state, when async workflows mix blocking calls with coroutines, or when tests rely on brittle monkeypatching instead of clean contracts. Pairing <strong>lock-guarded state objects</strong>, <strong>async service classes</strong>, and <strong>protocol-compliant fakes in <code>pytest</code></strong> keeps concurrent systems predictable and easy to verify.
+                </div>
+
+                <p><strong>Protecting mutable state under concurrency:</strong> Compound operations such as checking capacity, reserving a slot, and recording an item are not atomic on their own; wrapping read-modify-write transitions in a lock prevents race conditions and lost updates.</p>
+
+                <p><strong>Decoupling async services with protocols and fakes:</strong> An async service class that depends on a structural transport protocol can run against real async clients in production and fast, deterministic fakes in <code>pytest</code> without touching the network.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Concurrency Concept</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Key Advantage</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Lock-Guarded Object (<code>threading.Lock</code>)</strong></td>
+                                <td>Serializes read-modify-write access to shared mutable attributes</td>
+                                <td>Prevents lost updates and inconsistent intermediate states across threads</td>
+                                <td>Acquiring locks inconsistently or mutating shared state outside <code>with lock:</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Async Service Class</strong></td>
+                                <td>Orchestrates <code>async def</code> workflows over non-blocking client calls</td>
+                                <td>Keeps I/O awaits clean and composes easily in event loops</td>
+                                <td>Calling blocking sleep/network I/O inside coroutines or skipping input checks</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Protocol-Compliant Fake</strong></td>
+                                <td>Implements a <code>typing.Protocol</code> with simple in-memory state</td>
+                                <td>Tests realistic multi-step behavior in <code>pytest</code> without live external services</td>
+                                <td>Drifting away from the protocol signature or hiding invalid state transitions</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Snapshot / Copy Read</strong></td>
+                                <td>Returns copies or immutable snapshots of internal collections</td>
+                                <td>Prevents callers from mutating internal state after a lock releases</td>
+                                <td>Exposing raw internal dicts/lists that callers can mutate concurrently</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-cpu me-2"></i>Core Principles of Thread-Safe Objects, Async Clients &amp; Fakes</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Hold locks around complete invariants:</strong> Validate inputs first, then execute check-and-update steps atomically inside a <code>with self._lock:</code> block.</li>
+                            <li class="mb-2"><strong>Return copies instead of internal references:</strong> Expose snapshots of dictionaries or lists so outside code cannot corrupt locked state post-release.</li>
+                            <li class="mb-2"><strong>Program async services to structural protocols:</strong> Depend on an async client protocol so production clients and test fakes share the exact same contract.</li>
+                            <li class="mb-0"><strong>Keep fakes focused and deterministic in <code>pytest</code>:</strong> Record calls, simulate controlled failures, and assert exact state outcomes without network flakiness.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">15.1 Thread-Safe Shared Ledger Object</h4>
+                <p>This class synchronizes concurrent reservations with a <code>threading.Lock</code> so check-and-reserve operations remain atomic across threads and return safe snapshots.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import threading
+
+from dataclasses import dataclass
+from decimal import Decimal
+
+@dataclass(frozen=True)
+class SlotAllocation:
+    """Immutable record of a reserved slot on a shared ledger."""
+
+    slot_key: str
+    reserved_mass_kg: Decimal
+
+class ThreadSafeSlotLedger:
+    """Thread-safe ledger enforcing a total mass ceiling across concurrent callers."""
+
+    def __init__(self, maximum_mass_kg: Decimal) -> None:
+        """Initialize ledger with a positive finite mass ceiling and lock."""
+        # Reject booleans and non-Decimal limits defensively.
+        if isinstance(maximum_mass_kg, bool) or not isinstance(maximum_mass_kg, Decimal):
+            raise TypeError("maximum_mass_kg must be a Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative ceilings.
+        if not maximum_mass_kg.is_finite() or maximum_mass_kg <= Decimal("0.00"):
+            raise ValueError("maximum_mass_kg must be a positive finite Decimal.")
+
+        # Store ceiling, synchronization lock, and allocation mapping.
+        self._maximum_mass_kg: Decimal = maximum_mass_kg
+        self._lock: threading.Lock = threading.Lock()
+        self._allocations: dict[str, Decimal] = {}
+
+    @property
+    def max_mass_kg(self) -> Decimal:
+        """Return configured maximum mass ceiling."""
+        # Return immutable ceiling value.
+        return self._maximum_mass_kg
+
+    def reserve_slot(self, slot_key: str, mass_kg: Decimal) -> SlotAllocation:
+        """Atomically validate and reserve mass for slot_key under lock."""
+        # Validate slot_key and mass_kg types before acquiring lock.
+        if not isinstance(slot_key, str) or not slot_key.strip():
+            raise ValueError("slot_key must be a non-empty string.")
+
+        if isinstance(mass_kg, bool) or not isinstance(mass_kg, Decimal):
+            raise TypeError("mass_kg must be a Decimal.")
+
+        if not mass_kg.is_finite() or mass_kg <= Decimal("0.00"):
+            raise ValueError("mass_kg must be a positive finite Decimal.")
+
+        normalized_key: str = slot_key.strip().upper()
+
+        # Serialize check-and-update so concurrent threads cannot exceed capacity.
+        with self._lock:
+            existing_mass: Decimal = self._allocations.get(normalized_key, Decimal("0.00"))
+
+            competing_slots_mass_kg: Decimal = sum(
+                (value for key, value in self._allocations.items() if key != normalized_key),
+                start=Decimal("0.00"),
+            )
+
+            projected_total: Decimal = competing_slots_mass_kg + mass_kg
+
+            if projected_total > self._maximum_mass_kg:
+                raise ValueError(
+                    f"Reservation {mass_kg}kg for '{normalized_key}' exceeds limit {self._maximum_mass_kg}kg."
+                )
+
+            # Commit updated allocation inside the locked critical section.
+            self._allocations[normalized_key] = mass_kg
+
+            _ = existing_mass
+
+            return SlotAllocation(slot_key=normalized_key, reserved_mass_kg=mass_kg)
+
+    def snapshot_allocations(self) -> dict[str, Decimal]:
+        """Return a thread-safe shallow copy of current slot allocations."""
+        # Read dictionary under lock so iteration never races with writers.
+        with self._lock:
+            return dict(self._allocations)
+
+# Run this block only when executing the module directly.
+if __name__ == "__main__":
+    # Run concurrent worker threads attempting to reserve slots within a 25kg limit.
+    shared_ledger: ThreadSafeSlotLedger = ThreadSafeSlotLedger(maximum_mass_kg=Decimal("25.00"))
+    recorded_errors: list[str] = []
+    error_lock: threading.Lock = threading.Lock()
+
+    def worker_task(worker_idx: int) -> None:
+        """Attempt a slot reservation from a worker thread."""
+        # Guard error list updates with a separate lock.
+        try:
+            shared_ledger.reserve_slot(f"slot-{worker_idx}", Decimal("10.00"))
+        except ValueError as err:
+            with error_lock:
+                recorded_errors.append(f"worker-{worker_idx}: {err}")
+
+    threads: list[threading.Thread] = [
+        threading.Thread(target=worker_task, args=(idx,)) for idx in range(1, 5)
+    ]
+
+    for thread_item in threads:
+        thread_item.start()
+
+    for thread_item in threads:
+        thread_item.join()
+
+    print("Final allocations:", shared_ledger.snapshot_allocations())
+    print("Rejected threads:", recorded_errors)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">15.2 Async Service Class &amp; Protocol-Compliant Fake in pytest</h4>
+                <p>An async service class depends on an async client protocol, allowing tests in <code>pytest</code> to inject a lightweight fake client without opening real network sockets.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import asyncio
+
+from dataclasses import dataclass
+from typing import Protocol
+
+class AsyncBatchTransport(Protocol):
+    """Structural protocol for an asynchronous batch submission transport."""
+
+    async def post_batch(self, batch_code: str, payload_text: str) -> str:
+        """Asynchronously transmit a batch payload and return a confirmation token."""
+        ...
+
+@dataclass(frozen=True)
+class BatchReceipt:
+    """Immutable receipt returned when a batch is accepted by the service."""
+
+    batch_code: str
+    confirmation_token: str
+    attempt_index: int
+
+class AsyncBatchIngestionService:
+    """Asynchronous service validating batch inputs and delegating to a transport."""
+
+    def __init__(self, batch_transport: AsyncBatchTransport) -> None:
+        """Initialize service with a transport implementing post_batch()."""
+        # Reject transport objects that lack a callable post_batch method.
+        if not hasattr(batch_transport, "post_batch") or not callable(batch_transport.post_batch):
+            raise TypeError("batch_transport must expose a callable post_batch() method.")
+
+        # Store transport collaborator for asynchronous batch transmission.
+        self._batch_transport: AsyncBatchTransport = batch_transport
+
+    async def ingest_batch(self, batch_code: str, payload_text: str) -> BatchReceipt:
+        """Validate batch fields, await transport submission, and return a receipt."""
+        # Reject blank or non-string batch codes before scheduling async work.
+        if not isinstance(batch_code, str) or not batch_code.strip():
+            raise ValueError("batch_code must be a non-empty string.")
+
+        # Reject blank or non-string payload text before touching the transport.
+        if not isinstance(payload_text, str) or not payload_text.strip():
+            raise ValueError("payload_text must be a non-empty string.")
+
+        # Normalize identifiers and payloads at the service boundary.
+        normalized_batch_code: str = batch_code.strip().upper()
+        normalized_payload_text: str = payload_text.strip()
+
+        # Await asynchronous transport delivery and construct a typed receipt.
+        confirmation_token: str = await self._batch_transport.post_batch(
+            normalized_batch_code,
+            normalized_payload_text,
+        )
+
+        return BatchReceipt(
+            batch_code=normalized_batch_code,
+            confirmation_token=confirmation_token,
+            attempt_index=1,
+        )
+
+    async def ingest_batches_concurrently(self, atch_entries: list[tuple[str, str]]) -> list[BatchReceipt]:
+        """Validate and transmit multiple batches concurrently using asyncio.gather."""
+        # Reject non-list batch collections defensively.
+        if not isinstance(batch_entries, list):
+            raise TypeError("batch_entries must be a list of (batch_code, payload_text) tuples.")
+
+        # Reject empty batch lists so callers do not trigger no-op gathers silently.
+        if not batch_entries:
+            raise ValueError("batch_entries must contain at least one batch tuple.")
+
+        # Validate tuple structure and build coroutines for concurrent execution.
+        submission_coroutines = []
+
+        for entry in batch_entries:
+            if not isinstance(entry, tuple) or len(entry) != 2:
+                raise ValueError("Each item in batch_entries must be a 2-tuple.")
+
+            entry_code, entry_payload = entry
+            submission_coroutines.append(self.ingest_batch(entry_code, entry_payload))
+
+        # Gather receipts in order while preserving coroutine exceptions.
+        gathered_receipts: list[BatchReceipt] = await asyncio.gather(*submission_coroutines)
+
+        return gathered_receipts
+
+class FakeAsyncBatchTransport:
+    """Protocol-compliant fake transport storing batches in memory for tests."""
+
+    def __init__(self, fail_on_batch_codes: set[str] | None = None) -> None:
+        """Initialize fake transport with optional batch codes configured to fail."""
+        # Validate optional failure set so tests only pass valid string collections.
+        if fail_on_batch_codes is not None and not isinstance(fail_on_batch_codes, set):
+            raise TypeError("fail_on_batch_codes must be a set of strings or None.")
+
+        cleaned_failures: set[str] = set()
+        
+        if fail_on_batch_codes is not None:
+            for failed_code in fail_on_batch_codes:
+                if not isinstance(failed_code, str) or not failed_code.strip():
+                    raise ValueError("Each entry in fail_on_batch_codes must be non-empty.")
+
+                cleaned_failures.add(failed_code.strip().upper())
+
+        self._fail_on_batch_codes: set[str] = cleaned_failures
+        self.recorded_submissions: list[tuple[str, str]] = []
+
+    async def post_batch(self, batch_code: str, payload_text: str) -> str:
+        """Record batch submission asynchronously or raise for configured failure codes."""
+        # Yield control to the event loop to simulate non-blocking transport I/O.
+        await asyncio.sleep(0)
+
+        # Fail deterministically when the batch code is marked for failure in a test.
+        if batch_code in self._fail_on_batch_codes:
+            raise RuntimeError(f"Simulated transport rejection for '{batch_code}'.")
+
+        # Append normalized tuple and return a deterministic confirmation token.
+        self.recorded_submissions.append((batch_code, payload_text))
+
+        return f"TOKEN-{len(self.recorded_submissions)}-{batch_code}"
+
+
+# --- pytest test suite functions (run with: pytest <this_file>.py) ---
+def test_ingest_batch_normalizes_and_records_submission() -> None:
+    """Verify single batch ingestion normalizes fields and returns a BatchReceipt."""
+    # Arrange fake transport and ingestion service.
+    fake_transport: FakeAsyncBatchTransport = FakeAsyncBatchTransport()
+    ingestion_service: AsyncBatchIngestionService = AsyncBatchIngestionService(fake_transport)
+
+    # Act by running the async submission inside an event loop.
+    receipt_result: BatchReceipt = asyncio.run(
+        ingestion_service.ingest_batch(" wh-014 ", " pallet-items ")
+    )
+
+    # Assert normalized receipt fields and recorded fake history.
+    assert receipt_result.batch_code == "WH-014"
+    assert receipt_result.confirmation_token == "TOKEN-1-WH-014"
+    assert fake_transport.recorded_submissions == [("WH-014", "pallet-items")]
+
+def test_ingest_batches_concurrently_collects_all_receipts() -> None:
+    """Verify concurrent batch ingestion returns receipts for every batch."""
+    # Arrange fake transport with multiple incoming batches.
+    fake_transport: FakeAsyncBatchTransport = FakeAsyncBatchTransport()
+    ingestion_service: AsyncBatchIngestionService = AsyncBatchIngestionService(fake_transport)
+    incoming_pairs: list[tuple[str, str]] = [
+        (" b-201 ", " alpha "),
+        (" b-202 ", " beta "),
+    ]
+
+    # Act by running concurrent ingestion in an event loop.
+    receipts_list: list[BatchReceipt] = asyncio.run(
+        ingestion_service.ingest_batches_concurrently(incoming_pairs)
+    )
+
+    # Assert both batches completed and were recorded by the fake transport.
+    assert [item.batch_code for item in receipts_list] == ["B-201", "B-202"]
+    assert len(fake_transport.recorded_submissions) == 2
+
+def test_ingest_batch_raises_on_configured_transport_failure() -> None:
+    """Verify errors from the transport surface cleanly to callers."""
+    # Arrange fake transport configured to fail on batch ERR-9.
+    failing_transport: FakeAsyncBatchTransport = FakeAsyncBatchTransport(
+        fail_on_batch_codes={"ERR-9"}
+    )
+
+    ingestion_service: AsyncBatchIngestionService = AsyncBatchIngestionService(failing_transport)
+
+    # Act and assert that RuntimeError propagates from post_batch().
+    try:
+        asyncio.run(ingestion_service.ingest_batch("err-9", "bad-payload"))
+
+        assert False, "Expected RuntimeError when batch code is configured to fail."
+    except RuntimeError as transport_error:
+        assert "ERR-9" in str(transport_error)
+
+# Run this block only when executing this module directly as a script.
+if __name__ == "__main__":
+    # Execute a standalone verification run outside pytest.
+    standalone_transport: FakeAsyncBatchTransport = FakeAsyncBatchTransport()
+    standalone_service: AsyncBatchIngestionService = AsyncBatchIngestionService(
+        standalone_transport
+    )
+    standalone_receipts: list[BatchReceipt] = asyncio.run(
+        standalone_service.ingest_batches_concurrently(
+            [(" dock-1 ", " crates-a "), (" dock-2 ", " crates-b ")]
+        )
+    )
+
+    print("Receipts:", standalone_receipts)
+    print("Recorded submissions:", standalone_transport.recorded_submissions)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_14.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Rate Limiters &amp; Circuit Breakers
+                </a>
+                <a href="chapter_16.html" class="btn btn-primary btn-sm">
+                    Chapter 16 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

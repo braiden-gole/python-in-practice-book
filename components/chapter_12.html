@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 12: Exception Hierarchies & Resilient Service Objects - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 12: Exception Hierarchies &amp; Resilient Service Objects | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Designing domain exception hierarchies, preserving exception chains, and building resilient service objects in Python." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 12: Exception Hierarchies &amp; Resilient Service Objects | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 12: Exception Hierarchies &amp; Resilient Service Objects</h2>
+                <div class="lead mb-4">
+                    In production systems, failures are inevitable bad inputs arrive at boundaries, external dependencies fail transiently, and invalid state transitions must be stopped early. Designing a clear <strong>domain exception hierarchy</strong> and structuring <strong>resilient service objects</strong> turns raw tracebacks into predictable, diagnosable failure handling.
+                </div>
+
+                <p><strong>Why custom exception trees matter:</strong> Grouping related errors under a shared domain base exception lets callers catch broad subsystem failures when needed while still handling specific error conditions precisely.</p>
+
+                <p><strong>Resilient service boundaries:</strong> A service object protects core state by validating inputs upfront, chaining underlying exceptions with <code>raise ... from ...</code>, and avoiding partial or silent mutations when an operation fails.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Concept</th>
+                                <th scope="col">Mechanism / Pattern</th>
+                                <th scope="col">Primary Benefit</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Domain Base Exception</strong></td>
+                                <td><code>class ShipmentServiceError(Exception):</code></td>
+                                <td>Gives callers a single umbrella type for all shipment subsystem errors</td>
+                                <td>Inheriting from <code>BaseException</code> instead of <code>Exception</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Specific Error Subclasses</strong></td>
+                                <td>Validation vs. state or transient errors</td>
+                                <td>Enables targeted retry, rejection, or logging policies</td>
+                                <td>Creating dozens of redundant exceptions with identical meaning</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Exception Chaining</strong></td>
+                                <td><code>raise DomainError(...) from exc</code></td>
+                                <td>Preserves the original cause and traceback context for debugging</td>
+                                <td>Swallowing exceptions with bare <code>except:</code> or losing <code>__cause__</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Service Guardrails</strong></td>
+                                <td>Validate inputs before mutating state</td>
+                                <td>Keeps service instances in a consistent state after rejected calls</td>
+                                <td>Recording partial state before an error is raised</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-shield-check me-2"></i>Core Principles of Resilient Error Design</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Anchor every domain error on a shared base class:</strong> Subclass a subsystem exception (derived from <code>Exception</code>) so callers can catch either specific causes or the whole domain.</li>
+                            <li class="mb-2"><strong>Attach structured context when helpful:</strong> Store relevant identifiers or error codes cleanly on custom exceptions without hiding the message.</li>
+                            <li class="mb-2"><strong>Preserve root causes with explicit chaining:</strong> Use <code>raise ... from cause</code> when translating lower-level parsing or lookup errors into domain errors.</li>
+                            <li class="mb-0"><strong>Fail atomically in service methods:</strong> Validate all arguments and preconditions before altering service state or emitting side effects.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">12.1 Domain Exception Hierarchy with Chained Context</h4>
+                <p>A focused exception hierarchy distinguishes caller input errors from state or capacity failures while preserving structured context and exception chains.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+
+class ShipmentDomainError(Exception):
+    """Base exception for all shipment domain and service failures."""
+
+    def __init__(self, error_message: str, shipment_code: str | None = None) -> None:
+        """Initialize domain error with a non-empty message and optional shipment code."""
+        # Reject non-string or blank error messages defensively.
+        if not isinstance(error_message, str) or not error_message.strip():
+            raise ValueError("error_message must be a non-empty string.")
+
+        # Normalize optional shipment code if provided.
+        normalized_code: str | None = None
+
+        if shipment_code is not None:
+            if not isinstance(shipment_code, str) or not shipment_code.strip():
+                raise ValueError("shipment_code must be a non-empty string when provided.")
+
+            normalized_code = shipment_code.strip().upper()
+
+        # Store structured context and pass cleaned message to Exception.
+        self.shipment_code: str | None = normalized_code
+
+        super().__init__(error_message.strip())
+
+class InvalidShipmentInputError(ShipmentDomainError):
+    """Raised when shipment identifiers, weights, or parameters are invalid."""
+
+    def __init__(self, error_message: str, shipment_code: str | None = None, invalid_field_name: str = "shipment_input") -> None:
+        """Initialize invalid input error with offending field name metadata."""
+        # Reject non-string or blank field names defensively.
+        if not isinstance(invalid_field_name, str) or not invalid_field_name.strip():
+            raise ValueError("invalid_field_name must be a non-empty string.")
+
+        # Store offending field name before delegating to base exception.
+        self.invalid_field_name: str = invalid_field_name.strip()
+
+        super().__init__(error_message=error_message, shipment_code=shipment_code)
+
+class ShipmentCapacityError(ShipmentDomainError):
+    """Raised when a shipment exceeds allowed weight or capacity limits."""
+
+    def __init__(self, error_message: str, shipment_code: str | None = None, excess_kilograms: Decimal = Decimal("0.00")) -> None:
+        """Initialize capacity error with validated excess kilogram metadata."""
+        # Reject booleans and non-Decimal excess weight values defensively.
+        if isinstance(excess_kilograms, bool) or not isinstance(excess_kilograms, Decimal):
+            raise TypeError("excess_kilograms must be a Decimal.")
+
+        # Reject NaN, Infinity, or negative excess weight values.
+        if not excess_kilograms.is_finite() or excess_kilograms < Decimal("0.00"):
+            raise ValueError("excess_kilograms must be a finite non-negative Decimal.")
+
+        # Store excess weight amount before delegating to base exception.
+        self.excess_kilograms: Decimal = excess_kilograms
+
+        super().__init__(error_message=error_message, shipment_code=shipment_code)
+
+@dataclass(frozen=True)
+class BatchIntakeReport:
+    """Immutable summary of accepted, input-rejected, and over-capacity parcels."""
+
+    accepted_parcels: dict[str, Decimal]
+    input_rejections: list[str]
+    capacity_rejections: list[str]
+
+def parse_positive_kilograms(weight: object, shipment_code: str) -> Decimal:
+    """Parse and validate a positive finite parcel weight as a domain exception."""
+    # Reject booleans explicitly because bool subclasses int in Python.
+    if isinstance(weight, bool):
+        raise InvalidShipmentInputError(
+            "Parcel weight cannot be a boolean.",
+            shipment_code=shipment_code,
+            invalid_field_name="parcel_weight_kg",
+        )
+
+    # Convert Decimal or string/numeric input safely into Decimal.
+    try:
+        parsed_weight: Decimal = (
+            weight
+            if isinstance(weight, Decimal)
+            else Decimal(str(weight).strip())
+        )
+    except (InvalidOperation, TypeError, ValueError) as conversion_error:
+        # Chain underlying parse error to preserve root cause.
+        raise InvalidShipmentInputError(
+            f"Unable to parse parcel weight from {weight!r}.",
+            shipment_code=shipment_code,
+            invalid_field_name="parcel_weight_kg",
+        ) from conversion_error
+
+    # Reject NaN, Infinity, zero, or negative weights.
+    if not parsed_weight.is_finite() or parsed_weight <= Decimal("0.00"):
+        raise InvalidShipmentInputError(
+            "Parcel weight must be a positive finite Decimal.",
+            shipment_code=shipment_code,
+            invalid_field_name="parcel_weight_kg",
+        )
+
+    # Return validated weight value.
+    return parsed_weight
+
+class ShipmentBatchEvaluator:
+    """Evaluator validating parcel weights and capacity limits across a shipment batch."""
+
+    def __init__(self, maximum_weight_kg: Decimal) -> None:
+        """Initialize evaluator with a validated positive maximum weight ceiling."""
+        # Reject booleans and non-Decimal weight limits defensively.
+        if isinstance(maximum_weight_kg, bool) or not isinstance(maximum_weight_kg, Decimal):
+            raise TypeError("maximum_weight_kg must be a Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative weight limits.
+        if not maximum_weight_kg.is_finite() or maximum_weight_kg <= Decimal("0.00"):
+            raise ValueError("maximum_weight_kg must be a positive finite Decimal.")
+
+        # Store maximum allowed parcel weight and accepted shipment weights.
+        self._maximum_weight_kg: Decimal = maximum_weight_kg
+        self._accepted_weights: dict[str, Decimal] = {}
+
+    @property
+    def maximum_weight_kg(self) -> Decimal:
+        """Return the maximum permitted parcel weight in kilograms."""
+        # Expose weight limit via read-only property.
+        return self._maximum_weight_kg
+
+    @property
+    def accepted_weights(self) -> dict[str, Decimal]:
+        """Return a shallow copy of accepted shipment weights."""
+        # Return a copy so external callers cannot mutate internal state.
+        return dict(self._accepted_weights)
+
+    def admit_parcel(self, shipment_code: str, weight: object) -> Decimal:
+        """Validate weight and capacity for a shipment and record it if within limit."""
+        # Reject non-string or blank shipment codes defensively.
+        if not isinstance(shipment_code, str) or not shipment_code.strip():
+            raise InvalidShipmentInputError(
+                "shipment_code must be a non-empty string.",
+                invalid_field_name="shipment_code",
+            )
+
+        # Normalize shipment code before parsing weight or checking capacity.
+        normalized_code: str = shipment_code.strip().upper()
+        parsed_weight: Decimal = parse_positive_kilograms(weight, shipment_code=normalized_code)
+
+        # Reject parcels exceeding the configured weight ceiling with excess weight.
+        if parsed_weight > self._maximum_weight_kg:
+            overage_amount: Decimal = parsed_weight - self._maximum_weight_kg
+
+            raise ShipmentCapacityError(
+                f"Parcel weight {parsed_weight}kg exceeds limit {self._maximum_weight_kg}kg.",
+                shipment_code=normalized_code,
+                excess_kilograms=overage_amount,
+            )
+
+        # Record accepted weight and return validated value.
+        self._accepted_weights[normalized_code] = parsed_weight
+
+        return parsed_weight
+
+    def evaluate_candidates(
+        self,
+        candidate_shipments: list[tuple[str, object]],
+    ) -> BatchIntakeReport:
+        """Process candidate parcels and categorize input vs. capacity failures."""
+        # Reject non-list candidate collections defensively.
+        if not isinstance(candidate_shipments, list):
+            raise TypeError("candidate_shipments must be a list of (code, weight) tuples.")
+
+        # Track distinct rejection buckets while letting valid parcels succeed.
+        recorded_input_errors: list[str] = []
+        recorded_capacity_errors: list[str] = []
+
+        for parcel_entry in candidate_shipments:
+            # Reject malformed batch entries before attempting admission.
+            if not isinstance(parcel_entry, tuple) or len(parcel_entry) != 2:
+                recorded_input_errors.append(f"Malformed entry: {parcel_entry!r}")
+                continue
+
+            parcel_code: str
+            parcel_weight: object
+            parcel_code, parcel_weight = parcel_entry
+
+            try:
+                self.admit_parcel(parcel_code, parcel_weight)
+            except InvalidShipmentInputError as input_failure:
+                # Record malformed field and shipment context for data-cleanup queues.
+                recorded_input_errors.append(
+                    f"[{input_failure.shipment_code or 'UNKNOWN'}:{input_failure.invalid_field_name}] {input_failure}"
+                )
+            except ShipmentCapacityError as capacity_failure:
+                # Record overage weight for heavy-freight routing queues.
+                recorded_capacity_errors.append(
+                    f"[{capacity_failure.shipment_code or 'UNKNOWN'}:+{capacity_failure.excess_kilograms}kg] {capacity_failure}"
+                )
+
+        # Return immutable summary report for downstream callers.
+        return BatchIntakeReport(
+            accepted_parcels=dict(self._accepted_weights),
+            input_rejections=recorded_input_errors,
+            capacity_rejections=recorded_capacity_errors,
+        )
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Evaluate a mixed batch covering valid parcels, bad inputs, and over-capacity parcels.
+    batch_evaluator: ShipmentBatchEvaluator = ShipmentBatchEvaluator(
+        maximum_weight_kg=Decimal("20.00")
+    )
+
+    incoming_batch: list[tuple[str, object]] = [
+        (" shp-901 ", "not-a-number"),
+        (" shp-902 ", Decimal("25.50")),
+        (" shp-903 ", "14.25"),
+        ("   ", Decimal("5.00")),
+        (" shp-904 ", Decimal("23.00")),
+    ]
+
+    intake_summary: BatchIntakeReport = batch_evaluator.evaluate_candidates(incoming_batch)
+
+    print("Accepted parcels:", intake_summary.accepted_parcels)
+    print("Input rejections:", intake_summary.input_rejections)
+    print("Capacity rejections:", intake_summary.capacity_rejections)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">12.2 Resilient Service Objects with Atomic State Guardrails</h4>
+                <p>A resilient service object validates every input and capacity limit before recording a shipment, ensuring failed calls never leave partial or corrupted entries in its internal ledger.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from decimal import Decimal
+
+class ResilientManifestService:
+    """Service recording validated shipments while enforcing capacity and atomicity."""
+
+    def __init__(self, maximum_weight_kg: Decimal) -> None:
+        """Initialize service with a validated positive maximum weight threshold."""
+        # Reject booleans and non-Decimal capacity thresholds.
+        if isinstance(maximum_weight_kg, bool) or not isinstance(maximum_weight_kg, Decimal):
+            raise TypeError("max_weight_kg must be a Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative thresholds.
+        if not maximum_weight_kg.is_finite() or maximum_weight_kg <= Decimal("0.00"):
+            raise ValueError("max_weight_kg must be a positive finite Decimal.")
+
+        # Store validated capacity limit and private manifest ledger.
+        self._maximum_weght_kg: Decimal = maximum_weight_kg
+        self._accepted_weights: dict[str, Decimal] = {}
+
+    @property
+    def max_weight_kg(self) -> Decimal:
+        """Return the maximum permitted parcel weight in kilograms."""
+        # Expose weight ceiling via read-only property.
+        return self._maximum_weght_kg
+
+    @property
+    def accepted_weights(self) -> dict[str, Decimal]:
+        """Return a shallow copy of accepted shipment weights."""
+        # Return copy so external callers cannot mutate internal ledger state.
+        return dict(self._accepted_weights)
+
+    def register_shipment(self, shipment_code: str, weight: object) -> Decimal:
+        """Validate and record a shipment weight atomically or raise a domain error."""
+        # Reject non-string shipment codes defensively.
+        if not isinstance(shipment_code, str):
+            raise InvalidShipmentInputError("shipment_code must be a string.")
+
+        # Normalize and reject blank shipment codes.
+        normalized_code: str = shipment_code.strip().upper()
+
+        if not normalized_code:
+            raise InvalidShipmentInputError("shipment_code cannot be blank.")
+
+        # Reject duplicate shipment registrations before mutating state.
+        if normalized_code in self._accepted_weights:
+            raise InvalidShipmentInputError(
+                f"Shipment '{normalized_code}' is already registered.",
+                shipment_code=normalized_code,
+            )
+
+        # Parse and validate weight before checking capacity limit.
+        validated_weight: Decimal = parse_positive_kilograms(
+            weight,
+            shipment_code=normalized_code,
+        )
+
+        # Enforce maximum parcel weight before modifying the ledger.
+        if validated_weight > self._maximum_weght_kg:
+            raise ShipmentCapacityError(
+                f"Weight {validated_weight}kg exceeds limit {self._maximum_weght_kg}kg.",
+                shipment_code=normalized_code,
+            )
+
+        # Commit validated entry only after all checks succeed.
+        self._accepted_weights[normalized_code] = validated_weight
+
+        return validated_weight
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Register a valid parcel and verify an overweight parcel is rejected cleanly.
+    manifest_service: ResilientManifestService = ResilientManifestService(maximum_weight_kg=Decimal("25.0"))
+    accepted: Decimal = manifest_service.register_shipment(" shp-101 ", "12.5")
+
+    print("Accepted weight:", accepted)
+
+    try:
+        manifest_service.register_shipment(" shp-102 ", Decimal("30.0"))
+    except ShipmentCapacityError as exception:
+        print("Rejected overweight shipment:", exception)
+
+    # Confirm only the valid shipment exists in the ledger.
+    print("Ledger entries:", manifest_service.accepted_weights)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_11.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Strategy, Factory, Observer &amp; Command
+                </a>
+                <a href="chapter_13.html" class="btn btn-primary btn-sm">
+                    Chapter 13 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

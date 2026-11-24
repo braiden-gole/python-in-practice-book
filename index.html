@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="google-site-verification" content="gSmkvvqMiaJTaz9yyplx1rLh1oq0xYuaoLw1D1LukHU" />
+        <meta name="description" content="Python in Practice by Braiden Gole: an intermediate to advanced guide to Object-Oriented Programming in Python, ordered from core class foundations and data-model mechanics to patterns, persistence, security, and production systems." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="An intermediate to advanced Object-Oriented Programming guide in Python by Braiden Gole." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="images/square.png">
+
+        <link rel="canonical" href="https://braiden-gole.github.io/python-in-practice/" />
+
+        <link rel="me" href="https://github.com/braiden-gole" />
+
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Book",
+            "@id": "https://braiden-gole.github.io/python-in-practice/#book",
+            "headline": "Python in Practice",
+            "url": "https://braiden-gole.github.io/python-in-practice/",
+            "description": "An intermediate to advanced Object-Oriented Programming guide in Python, moving from rapid tooling and type-hint review into class lifecycles, data-model protocols, inheritance and composition, patterns, persistence, security, and testing.",
+            "image": "images/circle.png?v=2",
+            "author": {
+                "@type": "Person",
+                "@id": "https://braiden-gole.github.io/#person",
+                "name": "Braiden Gole",
+                "jobTitle": "Computer Programmer",
+                "url": "https://braiden-gole.github.io/"
+            },
+            "inLanguage": "en"
+        }
+        </script>
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Highlight.js GitHub Light & Dark Themes -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <header class="book-header py-5 text-center">
+            <div class="container">
+                <div class="d-flex align-items-center justify-content-center gap-3 mb-2">
+                    <img src="svgs/python-logo.svg" width="55" height="55" alt="Python Logo" class="book-logo">
+                    <h1 class="display-4 fw-bold mb-0 tracking-tight">Python in Practice</h1>
+                </div>
+                <p class="book-subtitle lead mx-auto mt-2">Intermediate to Advanced Object-Oriented Programming in Python</p>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+                <main class="container my-5 content-container">
+            <div class="author-card p-4 mb-5 rounded-3 text-center">
+                <p class="mb-2"><strong>Written by</strong> Braiden Gole</p>
+                <div class="d-flex flex-wrap justify-content-center align-items-center gap-4 small">
+                    <span><i class="bi bi-envelope-fill me-1 text-primary"></i>
+                        <a href="mailto:braiden.gole@gmail.com" class="text-decoration-none author-link">braiden.gole@gmail.com</a>
+                    </span>
+                    <span><i class="bi bi-globe me-1 text-primary"></i>
+                        <a href="https://braiden-gole.github.io/" class="text-decoration-none author-link">braiden-gole.github.io</a>
+                    </span>
+                    <span><i class="bi bi-github me-1 text-primary"></i>
+                        <a href="https://github.com/braiden-gole" class="text-decoration-none author-link">braiden-gole</a>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Part I: Rapid Review & Core OOP Foundations -->
+            <div class="part-section mb-5">
+                <h3 class="h4 part-title pb-2 mb-3">Part I: Rapid Review &amp; Core OOP Foundations</h3>
+                <div class="list-group shadow-sm chapter-group">
+                    <a href="components/chapter_01.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 1: Setting Up Python &amp; PyCharm</h5>
+                            <p class="mb-0 small chapter-desc">Fast review of Python 3 virtual environments, PyCharm IDE setup, package layout, and running scripts from the terminal.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_02.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 2: Type Hints, Object State &amp; Defensive Contracts</h5>
+                            <p class="mb-0 small chapter-desc">Reviewing static type hints, value normalization, <code>isinstance</code> guards, and fail-fast boundary checks before heavy code begins.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_03.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 3: Class Architecture, Invariants &amp; Object Lifecycle</h5>
+                            <p class="mb-0 small chapter-desc">Designing cohesive classes, <code>__init__</code> vs. factory classmethods, object identity vs. equality, and state transitions.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_04.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 4: Dataclasses, Slots &amp; Immutable Value Objects</h5>
+                            <p class="mb-0 small chapter-desc">Mastering <code>@dataclass</code>, <code>__post_init__</code> invariant validation, <code>frozen=True</code> value models, <code>slots=True</code>, and memory layout.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Part II: Data Model, Properties & Descriptors -->
+            <div class="part-section mb-5">
+                <h3 class="h4 part-title pb-2 mb-3">Part II: Data Model, Properties &amp; Descriptors</h3>
+                <div class="list-group shadow-sm chapter-group">
+                    <a href="components/chapter_05.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 5: Dunder Protocols, Operator Overloading &amp; Custom Containers</h5>
+                            <p class="mb-0 small chapter-desc">Hooking into Python's data model with <code>__repr__</code>, ordering/equality dunders, arithmetic operators, and custom collection protocols.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_06.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 6: Properties, Validation &amp; The Descriptor Protocol</h5>
+                            <p class="mb-0 small chapter-desc">Moving from single-class <code>@property</code> guards to reusable data and non-data descriptors (<code>__get__</code>, <code>__set__</code>, <code>__set_name__</code>).</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_07.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 7: Context Manager Classes &amp; Resource Lifecycles</h5>
+                            <p class="mb-0 small chapter-desc">Implementing stateful <code>__enter__</code> and <code>__exit__</code> objects, exception suppression rules, and transactional rollback managers.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Part III: Inheritance, Protocols & Metaprogramming -->
+            <div class="part-section mb-5">
+                <h3 class="h4 part-title pb-2 mb-3">Part III: Inheritance, Protocols &amp; Metaprogramming</h3>
+                <div class="list-group shadow-sm chapter-group">
+                    <a href="components/chapter_08.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 8: Inheritance, MRO &amp; Composition Over Inheritance</h5>
+                            <p class="mb-0 small chapter-desc">Navigating multiple inheritance and C3 Method Resolution Order (MRO) with <code>super()</code>, and refactoring rigid trees into composable objects.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_09.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 9: Abstract Base Classes &amp; Structural Protocols</h5>
+                            <p class="mb-0 small chapter-desc">Comparing nominal ABC interfaces (<code>abc.ABC</code>) with structural <code>typing.Protocol</code> contracts and runtime-checkable duck typing.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_10.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 10: __init_subclass__, Class Decorators &amp; Metaclasses</h5>
+                            <p class="mb-0 small chapter-desc">Automating class registration and validation with <code>__init_subclass__</code> and class decorators, and knowing when metaclasses are warranted.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Part IV: Patterns, Persistence, Security & Production OOP -->
+            <div class="part-section mb-5">
+                <h3 class="h4 part-title pb-2 mb-3">Part IV: Patterns, Persistence, Security &amp; Production OOP</h3>
+                <div class="list-group shadow-sm chapter-group">
+                    <a href="components/chapter_11.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 11: Strategy, Factory, Observer &amp; Command Patterns</h5>
+                            <p class="mb-0 small chapter-desc">Applying classic object-oriented patterns idiomatically in Python with callables, protocols, and decoupled event publishers.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_12.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 12: Exception Hierarchies &amp; Resilient Service Objects</h5>
+                            <p class="mb-0 small chapter-desc">Modeling domain error hierarchies, exception chaining, retryable operation objects, and structured logging inside services.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_13.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 13: Configuration, Serialization &amp; Boundary Adapters</h5>
+                            <p class="mb-0 small chapter-desc">Validating runtime configuration objects, preserving precision during JSON serialization, and translating external payloads through boundary adapters.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_14.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 14: Rate Limiters, Circuit Breakers &amp; Resilient Gateways</h5>
+                            <p class="mb-0 small chapter-desc">Building token-bucket rate limiters, circuit breaker state machines, and resilient outbound gateways for downstream services.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_15.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 15: Thread-Safe Objects, Async Clients &amp; Fakes in pytest</h5>
+                            <p class="mb-0 small chapter-desc">Synchronizing shared object state with locks, building async service classes, and testing with protocol-compliant fakes and <code>pytest</code>.</p>
+                        </div>
+                    </a>
+                    <a href="components/chapter_16.html" class="list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 text-decoration-none">
+                        <img src="svgs/pycharm.svg" width="36" height="36" alt="PyCharm" class="flex-shrink-0">
+                        <div>
+                            <h5 class="mb-1 fw-bold chapter-title">Chapter 16: Observability, Metrics &amp; Audit Trails in OOP Systems</h5>
+                            <p class="mb-0 small chapter-desc">Instrumenting counters and scoped timers, recording immutable audit trails with correlation IDs, and exposing thread-safe telemetry snapshots.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- jsdelivr -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Custom JavaScript -->
+        <script src="script.js"></script>
+    </body>
+</html>

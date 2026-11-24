@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 14: Rate Limiters, Circuit Breakers & Resilient Gateways - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 14: Rate Limiters, Circuit Breakers &amp; Resilient Gateways | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Building token-bucket rate limiters, circuit breaker state machines, and resilient outbound gateways in Python." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 14: Rate Limiters, Circuit Breakers &amp; Resilient Gateways | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 14: Rate Limiters, Circuit Breakers &amp; Resilient Gateways</h2>
+                <div class="lead mb-4">
+                    Outbound calls to external services or downstream APIs can overwhelm rate quotas or stall when a dependency degrades. Pairing a <strong>token-bucket rate limiter</strong> and a <strong>circuit breaker state machine</strong> inside a <strong>resilient gateway</strong> protects callers from cascading failures while keeping state transitions explicit.
+                </div>
+
+                <p><strong>Throttling bursts before they saturate callers:</strong> A token-bucket rate limiter refills capacity smoothly over time and rejects requests cleanly when burst tokens are exhausted rather than letting queues grow unbounded.</p>
+
+                <p><strong>Tripping circuits on repeated failures:</strong> When downstream calls fail repeatedly, opening a circuit breaker fails fast during outages, transitions to half-open after a cooldown window, and closes again only after probe calls succeed.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Protection Component</th>
+                                <th scope="col">Core Mechanism</th>
+                                <th scope="col">Primary Benefit</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Token-Bucket Rate Limiter</strong></td>
+                                <td>Refills tokens over elapsed time up to a maximum bucket capacity</td>
+                                <td>Smooths traffic bursts and enforces predictable request pacing</td>
+                                <td>Allowing negative timestamps or letting token balances exceed burst capacity</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Circuit Breaker</strong></td>
+                                <td>Transitions across <code>closed</code>, <code>open</code>, and <code>half_open</code> states</td>
+                                <td>Stops hammering an unhealthy dependency and speeds recovery probing</td>
+                                <td>Resetting failure counters partially without tracking half-open probes</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Outbound Gateway</strong></td>
+                                <td>Coordinates rate limiting, circuit checks, and transport invocation</td>
+                                <td>Keeps retry/throttle/trip policies centralized behind one facade</td>
+                                <td>Consuming rate-limit tokens or mutating state after invalidating inputs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Clock Injector</strong></td>
+                                <td>Accepts a deterministic monotonic time callable for time advancement</td>
+                                <td>Makes rate-limit refill and circuit cooldown logic deterministic in tests</td>
+                                <td>Hardcoding uninjected clocks where cooldown windows are hard to verify</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-speedometer2 me-2"></i>Core Principles of Rate Limiters &amp; Circuit Breakers</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Clamp elapsed time and token balances:</strong> Guard against backward clock jumps and cap available tokens at <code>bucket_capacity</code>.</li>
+                            <li class="mb-2"><strong>Model circuit states explicitly:</strong> Represent circuit breaker states cleanly and verify cooldown thresholds before allowing half-open probes.</li>
+                            <li class="mb-2"><strong>Validate inputs before mutating counters:</strong> Reject negative token costs, non-positive thresholds, or blank operation names upfront.</li>
+                            <li class="mb-0"><strong>Keep gateway boundaries focused:</strong> Let the gateway enforce pacing and circuit protection while delegating actual transport calls to an injected client.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">14.1 Token-Bucket Rate Limiter</h4>
+                <p>A token-bucket limiter refills tokens proportionally to elapsed time and grants or denies requests using explicit state validation.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import time
+from typing import Callable
+from decimal import Decimal, InvalidOperation
+
+class TokenBucketRateLimiter:
+    """Rate limiter enforcing burst capacity and steady token refill over time."""
+
+    def __init__(self, capacity: Decimal, refill_rate: Decimal, clock: Callable[[], float] | None = None) -> None:
+        """Initialize bucket capacity, refill rate, and optional monotonic clock."""
+        # Reject booleans and non-Decimal capacity values defensively.
+        if isinstance(capacity, bool) or not isinstance(capacity, Decimal):
+            raise TypeError("bucket_capacity must be a Decimal.")
+
+        # Reject booleans and non-Decimal refill rates defensively.
+        if isinstance(refill_rate, bool) or not isinstance(refill_rate, Decimal):
+            raise TypeError("refill_rate must be a Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative bucket capacities.
+        if not capacity.is_finite() or capacity <= Decimal("0.00"):
+            raise ValueError("bucket_capacity must be a positive finite Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative refill rates.
+        if not refill_rate.is_finite() or refill_rate <= Decimal("0.00"):
+            raise ValueError("refill_rate must be a positive finite Decimal.")
+
+        # Ensure an injected clock source is callable before storing it.
+        if clock is not None and not callable(clock):
+            raise TypeError("clock_source must be callable when provided.")
+
+        # Store validated bucket parameters and default to monotonic time if omitted.
+        self._bucket_capacity: Decimal = capacity
+        self._refill_rate: Decimal = refill_rate
+        self._clock_source: Callable[[], float] = (
+            clock if clock is not None else time.monotonic
+        )
+
+        # Start with a full bucket and record the initial clock reading.
+        self._token_balance: Decimal = capacity
+        self._last_tick: float = self._read_clock()
+
+    def _read_clock(self) -> float:
+        """Read current timestamp from clock_source and validate finite float."""
+        # Invoke clock source to obtain a raw timestamp value.
+        tick: object = self._clock_source()
+
+        # Reject booleans and non-numeric values returned by the clock.
+        if isinstance(tick, bool) or not isinstance(tick, (int, float)):
+            raise TypeError("clock_source must return a numeric timestamp.")
+
+        # Convert timestamp to float and reject NaN or infinite values.
+        tick_value: float = float(tick)
+        if not (tick_value == tick_value and tick_value not in (float("inf"), float("-inf"))):
+            raise ValueError("clock_source must return a finite timestamp.")
+
+        # Return validated timestamp value.
+        return tick_value
+
+    def _refill_tokens(self, current_tick: float) -> None:
+        """Advance available tokens based on elapsed time since last refill."""
+        # Clamp negative elapsed intervals to zero if clock steps backward.
+        elapsed_time: float = max(0.0, current_tick - self._last_tick)
+
+        # Update last observed timestamp for future refill calculations.
+        self._last_tick = current_tick
+
+        # Add accrued tokens only when positive time has elapsed.
+        if elapsed_time > 0.0:
+            try:
+                elapsed_decimal: Decimal = Decimal(str(elapsed_time))
+            except InvalidOperation as conversion_error:
+                raise RuntimeError("Failed converting elapsed time to Decimal.") from conversion_error
+
+            # Calculate newly earned tokens and cap balance at bucket capacity.
+            added_tokens: Decimal = elapsed_decimal * self._refill_rate
+            updated_balance: Decimal = self._token_balance + added_tokens
+            self._token_balance = min(self._bucket_capacity, updated_balance)
+
+    @property
+    def available_tokens(self) -> Decimal:
+        """Return current token balance after refilling elapsed time."""
+        # Refill tokens up to the current clock reading before returning balance.
+        self._refill_tokens(self._read_clock())
+
+        # Return current available token count.
+        return self._token_balance
+
+    def try_consume(self, token_cost: Decimal = Decimal("1.00")) -> bool:
+        """Refill bucket and consume token_cost if sufficient balance exists."""
+        # Reject booleans and non-Decimal token costs defensively.
+        if isinstance(token_cost, bool) or not isinstance(token_cost, Decimal):
+            raise TypeError("token_cost must be a Decimal.")
+
+        # Reject NaN, Infinity, zero, or negative token costs.
+        if not token_cost.is_finite() or token_cost <= Decimal("0.00"):
+            raise ValueError("token_cost must be a positive finite Decimal.")
+
+        # Refill tokens up to current timestamp before checking availability.
+        self._refill_tokens(self._read_clock())
+
+        # Deny request if insufficient tokens are available in the bucket.
+        if self._token_balance < token_cost:
+            return False
+
+        # Deduct token cost from balance and signal success.
+        self._token_balance -= token_cost
+
+        return True</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">14.2 Circuit Breaker &amp; Resilient Outbound Gateway</h4>
+                <p>A circuit breaker tracks consecutive failures, opens after reaching the failure threshold, enters half-open after a recovery timeout, and closes once a probe succeeds.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">import time
+
+from enum import Enum
+from decimal import Decimal
+from typing import Callable, Protocol
+
+class CircuitState(str, Enum):
+    """Supported lifecycle states for a circuit breaker."""
+
+    # Normal state where requests pass through to the downstream client.
+    CLOSED = "closed"
+
+    # Tripped state where requests fail fast without calling downstream.
+    OPEN = "open"
+
+    # Probing state allowing a trial request after the cooldown expires.
+    HALF_OPEN = "half_open"
+
+class RemoteDispatchClient(Protocol):
+    """Structural protocol for an outbound client executing named operations."""
+
+    def send_operation(self, operation_name: str, payload_data: str) -> str:
+        """Execute an outbound operation and return a status string."""
+        ...
+
+class CircuitBreakerOpenError(RuntimeError):
+    """Raised when an operation is rejected because the circuit is open."""
+
+
+class RateLimitExceededError(RuntimeError):
+    """Raised when an operation is rejected because rate-limit tokens are exhausted."""
+
+
+class CircuitBreaker:
+    """State machine protecting downstream calls from repeated failures."""
+
+    def __init__(
+        self,
+        threshold: int = 3,
+        timeout_seconds: float = 15.0,
+        clock_reader: Callable[[], float] | None = None,
+    ) -> None:
+        """Initialize failure threshold, recovery cooldown, and optional clock."""
+        # Reject booleans first because bool is a subclass of int in Python.
+        if isinstance(threshold, bool) or not isinstance(threshold, int):
+            raise TypeError("failure_threshold must be a non-boolean integer.")
+
+        # Ensure failure threshold is at least one so the breaker can trip.
+        if threshold < 1:
+            raise ValueError("failure_threshold must be greater than or equal to 1.")
+
+        # Reject booleans and non-numeric recovery timeouts defensively.
+        if isinstance(timeout_seconds, bool) or not isinstance(
+            timeout_seconds, (int, float)
+        ):
+            raise TypeError("recovery_timeout_seconds must be a number.")
+
+        # Convert timeout to float and reject NaN, zero, negative, or infinite values.
+        timeout_value: float = float(timeout_seconds)
+
+        if not (
+            timeout_value == timeout_value
+            and timeout_value > 0.0
+            and timeout_value not in (float("inf"), float("-inf"))
+        ):
+            raise ValueError("recovery_timeout_seconds must be a positive finite number.")
+
+        # Validate custom clock callable if one is provided.
+        if clock_reader is not None and not callable(clock_reader):
+            raise TypeError("clock_reader must be callable when provided.")
+
+        # Store configuration parameters and default to monotonic time when uninjected.
+        self._failure_threshold: int = threshold
+        self._recovery_timeout_seconds: float = timeout_value
+
+        self._clock_reader: Callable[[], float] = (
+            clock_reader if clock_reader is not None else time.monotonic
+        )
+
+        # Start in CLOSED state with zero failures and no open timestamp.
+        self._circuit_state: CircuitState = CircuitState.CLOSED
+        self._consecutive_failures: int = 0
+        self._opened_at_timestamp: float | None = None
+
+    @property
+    def circuit_state(self) -> CircuitState:
+        """Return current circuit state, advancing OPEN to HALF_OPEN if elapsed."""
+        # Check whether the cooldown window has passed before reading state.
+        self._refresh_state_for_cooldown()
+
+        # Return the up-to-date circuit breaker state.
+        return self._circuit_state
+
+    def _refresh_state_for_cooldown(self) -> None:
+        """Transition from OPEN to HALF_OPEN once recovery timeout has elapsed."""
+        # Only an OPEN circuit with a recorded open timestamp can cool down.
+        if self._circuit_state == CircuitState.OPEN and self._opened_at_timestamp is not None:
+            # Read current time and compute elapsed cooldown duration.
+            now_tick: float = float(self._clock_reader())
+
+            # Advance state to HALF_OPEN so a single probe call can test recovery.
+            if (now_tick - self._opened_at_timestamp) >= self._recovery_timeout_seconds:
+                self._circuit_state = CircuitState.HALF_OPEN
+
+    def before_request(self) -> None:
+        """Allow request in CLOSED or HALF_OPEN, or raise CircuitBreakerOpenError."""
+        # Refresh state first so expired OPEN circuits become HALF_OPEN.
+        self._refresh_state_for_cooldown()
+
+        # Block calls immediately while the circuit remains OPEN.
+        if self._circuit_state == CircuitState.OPEN:
+            raise CircuitBreakerOpenError("Circuit breaker is OPEN; rejecting call.")
+
+    def record_success(self) -> None:
+        """Reset failure counters and close the circuit after a successful call."""
+        # Clear consecutive failure counter once a call succeeds.
+        self._consecutive_failures = 0
+
+        # Clear recorded open timestamp because the breaker is no longer tripped.
+        self._opened_at_timestamp = None
+
+        # Return circuit state to CLOSED for normal traffic flow.
+        self._circuit_state = CircuitState.CLOSED
+
+    def record_failure(self) -> None:
+        """Increment failure count and trip circuit OPEN when threshold is reached."""
+        # If a HALF_OPEN probe fails, re-open immediately and restart cooldown timer.
+        if self._circuit_state == CircuitState.HALF_OPEN:
+            self._circuit_state = CircuitState.OPEN
+            self._opened_at_timestamp = float(self._clock_reader())
+            
+            return
+
+        # Increment consecutive failure streak for CLOSED state calls.
+        self._consecutive_failures += 1
+
+        # Trip the breaker OPEN and record timestamp once threshold is hit.
+        if self._consecutive_failures >= self._failure_threshold:
+            self._circuit_state = CircuitState.OPEN
+            self._opened_at_timestamp = float(self._clock_reader())
+
+
+class ResilientOutboundGateway:
+    """Gateway combining rate limiting and circuit breaking around a remote client."""
+
+    def __init__(
+        self,
+        remote_client: RemoteDispatchClient,
+        rate_limiter: TokenBucketRateLimiter,
+        circuit_breaker: CircuitBreaker,
+    ) -> None:
+        """Initialize gateway with validated client, rate limiter, and circuit breaker."""
+        # Ensure remote_client exposes a callable send_operation method.
+        if not hasattr(remote_client, "send_operation") or not callable(remote_client.send_operation):
+            raise TypeError("remote_client must provide a callable send_operation() method.")
+
+        # Ensure rate_limiter is a valid TokenBucketRateLimiter instance.
+        if not isinstance(rate_limiter, TokenBucketRateLimiter):
+            raise TypeError("rate_limiter must be a TokenBucketRateLimiter instance.")
+
+        # Ensure circuit_breaker is a valid CircuitBreaker instance.
+        if not isinstance(circuit_breaker, CircuitBreaker):
+            raise TypeError("circuit_breaker must be a CircuitBreaker instance.")
+
+        # Store validated collaborators for request dispatch.
+        self._remote_client: RemoteDispatchClient = remote_client
+        self._rate_limiter: TokenBucketRateLimiter = rate_limiter
+        self._circuit_breaker: CircuitBreaker = circuit_breaker
+
+    def dispatch(self, operation_name: str, payload_data: str) -> str:
+        """Check circuit and rate limit before invoking remote_client.send_operation."""
+        # Reject blank or non-string operation names before touching limiters or breakers.
+        if not isinstance(operation_name, str) or not operation_name.strip():
+            raise ValueError("operation_name must be a non-empty string.")
+
+        # Reject non-string payload data before proceeding.
+        if not isinstance(payload_data, str):
+            raise TypeError("payload_data must be a string.")
+
+        # Verify circuit is not OPEN before consuming rate-limit tokens.
+        self._circuit_breaker.before_request()
+
+        # Consume a token from the rate limiter or fail fast when throttled.
+        if not self._rate_limiter.try_consume(Decimal("1.00")):
+            raise RateLimitExceededError("Rate limit exceeded for outbound gateway.")
+
+        # Normalize operation name before forwarding to the outbound client.
+        cleaned_operation: str = operation_name.strip().lower()
+
+        try:
+            # Execute the downstream call and capture its response.
+            response_text: str = self._remote_client.send_operation(
+                cleaned_operation,
+                payload_data,
+            )
+        except Exception:
+            # Record downstream failure in circuit breaker and re-raise original error.
+            self._circuit_breaker.record_failure()
+            raise
+
+        # Mark call as successful so circuit closes or resets failure count.
+        self._circuit_breaker.record_success()
+
+        # Return downstream response string to caller.
+        return response_text
+
+
+class _FlakyGatewayClient:
+    """Test client failing on the first two calls before succeeding."""
+
+    def __init__(self) -> None:
+        """Initialize call counter for deterministic failure simulation."""
+        # Track total invocations made against this client.
+        self.call_count: int = 0
+
+    def send_operation(self, operation_name: str, payload_data: str) -> str:
+        """Fail twice, then return a successful acknowledgment."""
+        # Count each invocation attempt.
+        self.call_count += 1
+
+        # Simulate upstream timeouts on the first two attempts.
+        if self.call_count <= 2:
+            raise RuntimeError("Upstream timeout.")
+
+        # Return confirmation once downstream recovers.
+        return f"OK:{operation_name}:{payload_data}"
+
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Initialize simulated monotonic clock starting at 200.0 seconds.
+    gateway_clock: list[float] = [200.0]
+
+    def read_gateway_clock() -> float:
+        """Return simulated monotonic clock for gateway."""
+        # Read current value from single-element clock holder.
+        return gateway_clock[0]
+
+    # Wire test client, rate limiter, circuit breaker, and gateway together.
+    flaky_client: _FlakyGatewayClient = _FlakyGatewayClient()
+
+    bucket: TokenBucketRateLimiter = TokenBucketRateLimiter(
+        bucket_capacity=Decimal("5.00"),
+        refill_tokens_per_second=Decimal("5.00"),
+        clock_reader=read_gateway_clock,
+    )
+
+    breaker: CircuitBreaker = CircuitBreaker(
+        threshold=2,
+        timeout_seconds=10.0,
+        clock_reader=read_gateway_clock,
+    )
+
+    gateway: ResilientOutboundGateway = ResilientOutboundGateway(
+        remote_client=flaky_client,
+        rate_limiter=bucket,
+        circuit_breaker=breaker,
+    )
+
+    # Attempt three dispatches: first two fail and trip breaker, third is rejected while OPEN.
+    for attempt_index in range(1, 4):
+        try:
+            # Dispatch sample manifest batch through resilient gateway.
+            outcome: str = gateway.dispatch("sync_manifest", "batch-1")
+
+            print(f"Attempt {attempt_index} succeeded:", outcome)
+        except Exception as exc:
+            # Print error details and current circuit breaker state.
+            print(
+                f"Attempt {attempt_index} failed ({type(exc).__name__}): {exc} "
+                f"[state={breaker.circuit_state.value}]"
+            )
+
+    # Advance clock past recovery timeout so circuit enters HALF_OPEN and recovers.
+    gateway_clock[0] += 10.0
+
+    # Retry dispatch after cooldown and inspect final circuit state.
+    print("Recovered attempt:", gateway.dispatch("sync_manifest", "batch-1"))
+    print("Final circuit state:", breaker.circuit_state.value)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_13.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Config, Serialization &amp; Adapters
+                </a>
+                <a href="chapter_15.html" class="btn btn-primary btn-sm">
+                    Chapter 15 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

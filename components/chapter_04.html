@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 4: Data Classes, Slots & Immutable Value Objects - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 4: Data Classes, Slots &amp; Immutable Value Objects | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Modeling immutable value objects with @dataclass(frozen=True), __post_init__ validation, __slots__, and safe container choices in Python." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 4: Data Classes, Slots &amp; Immutable Value Objects | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 4: Data Classes, Slots &amp; Immutable Value Objects</h2>
+                <div class="lead mb-4">
+                    Once you understand how mutable entities protect lifecycle state, the next step is modeling <strong>value objects</strong> compact structures defined by their data rather than a separate object identity. Pairing <code>@dataclass(frozen=True)</code> with <code>__post_init__</code> and <code>__slots__</code> keeps data predictable, validated, and memory-efficient.
+                </div>
+
+                <p><strong>What makes a value object distinct:</strong> Two instances of a value object are interchangeable whenever their normalized fields match—such as a <code>MoneyAmount</code> of <code>$25.00 CAD</code> or a <code>ShipmentLineItem</code> with SKU <code>GLASS-042</code> and quantity <code>2</code>.</p>
+
+                <p><strong>Why immutability and slots matter together:</strong> Frozen instances prevent accidental mutation after construction, while <code>__slots__</code> avoids per-instance <code>__dict__</code> overhead and blocks typos from creating stray attributes silently.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Pattern</th>
+                                <th scope="col">Mechanism / Syntax</th>
+                                <th scope="col">Primary Role</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Frozen Dataclass</strong></td>
+                                <td><code>@dataclass(frozen=True)</code></td>
+                                <td>Generates <code>__init__</code>, <code>__repr__</code>, <code>__eq__</code>, and <code>__hash__</code> while blocking attribute reassignment</td>
+                                <td>Using normal <code>self.attr = ...</code> inside <code>__post_init__</code> instead of <code>object.__setattr__</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Post-Init Guard</strong></td>
+                                <td><code>def __post_init__(self) -&gt; None:</code></td>
+                                <td>Validates types, normalizes strings/decimals, and enforces invariants at creation time</td>
+                                <td>Allowing <code>NaN</code>/<code>Infinity</code> <code>Decimal</code> values or <code>bool</code> masquerading as <code>int</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Slotted Storage</strong></td>
+                                <td><code>__slots__</code> or <code>slots=True</code></td>
+                                <td>Replaces per-instance <code>__dict__</code> with fixed slot descriptors to save memory and catch typos</td>
+                                <td>Storing mutable <code>list</code> or <code>dict</code> fields inside an otherwise frozen object</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Immutable Collections</strong></td>
+                                <td><code>tuple[...]</code>, <code>frozenset[...]</code></td>
+                                <td>Keeps nested collections read-only so callers cannot mutate inner items</td>
+                                <td>Passing raw mutable lists into a frozen record without normalizing</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-layers me-2"></i>Core Principles of Value Objects &amp; Slots</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Value equality &amp; hashability:</strong> Frozen dataclasses with hashable fields can be compared with <code>==</code>, stored in <code>set</code> collections, and used as <code>dict</code> keys safely.</li>
+                            <li class="mb-2"><strong><code>object.__setattr__</code> in <code>__post_init__</code>:</strong> Use <code>object.__setattr__(self, "field", normalized_value)</code> when normalizing fields after construction on a frozen dataclass.</li>
+                            <li class="mb-2"><strong>Slots reduce overhead &amp; typos:</strong> Enabling <code>slots=True</code> avoids per-instance <code>__dict__</code> allocation and immediately raises <code>AttributeError</code> if someone assigns a misspelled attribute name.</li>
+                            <li class="mb-0"><strong>Return new instances instead of mutating:</strong> Operations like adding two amounts should return a new validated object rather than mutating existing state in place.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">4.1 Frozen Data Classes and <code>__post_init__</code> Normalization</h4>
+                <p>A frozen dataclass generates boilerplate methods automatically while letting <code>__post_init__</code> enforce domain rules before the object is handed to callers. Use <code>object.__setattr__</code> when writing normalized values onto a frozen instance.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+@dataclass(frozen=True)
+class MoneyAmount:
+    """Immutable monetary value object defined by an exact amount and currency code."""
+
+    amount: Decimal
+    currency: str
+
+    def __post_init__(self) -&gt; None:
+        """Validate and normalize monetary amount and currency invariants."""
+        # Reject boolean values explicitly because bool is a subclass of int.
+        if isinstance(self.amount, bool):
+            raise TypeError("Monetary amount cannot be a boolean.")
+
+        # Convert supported input types into a Decimal cleanly.
+        try:
+            if isinstance(self.amount, Decimal):
+                parsed_amount: Decimal = self.amount
+            elif isinstance(self.amount, (int, float, str)):
+                parsed_amount = Decimal(str(self.amount).strip())
+            else:
+                raise TypeError("Monetary amount must be a Decimal, int, float, or str.")
+        except InvalidOperation as parse_error:
+            raise ValueError(f"Invalid monetary amount: {self.amount}.") from parse_error
+
+        # Reject non-finite Decimal values such as NaN or Infinity.
+        if not parsed_amount.is_finite():
+            raise ValueError("Monetary amount must be a finite number.")
+
+        # Normalize to two decimal places using half-up rounding.
+        normalized_amount: Decimal = parsed_amount.quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+
+        # Reject non-string currency codes.
+        if not isinstance(self.currency, str):
+            raise TypeError("Currency code must be a string.")
+
+        # Normalize currency code whitespace and casing.
+        normalized_currency: str = self.currency.strip().upper()
+
+        # Require a three-letter alphabetic currency code.
+        if len(normalized_currency) != 3 or not normalized_currency.isalpha():
+            raise ValueError("Currency code must be a three-letter alphabetic code.")
+
+        # Assign normalized values on the frozen instance via object.__setattr__.
+        object.__setattr__(self, "amount", normalized_amount)
+        object.__setattr__(self, "currency", normalized_currency)
+
+    def add(self, other_amount: "MoneyAmount") -&gt; "MoneyAmount":
+        """Return a new MoneyAmount sum when currencies match."""
+        # Ensure the other operand is a MoneyAmount instance.
+        if not isinstance(other_amount, MoneyAmount):
+            raise TypeError("Can only add another MoneyAmount instance.")
+
+        # Prevent mixing different currencies silently.
+        if self.currency != other_amount.currency:
+            raise ValueError(
+                f"Cannot add currency '{other_amount.currency}' to '{self.currency}'."
+            )
+
+        # Return a new immutable instance with the combined amount.
+        return MoneyAmount(amount=self.amount + other_amount.amount, currency=self.currency)
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create two MoneyAmount instances and compute their sum.
+    item_price: MoneyAmount = MoneyAmount(amount="19.995", currency=" cad ")
+    shipping_cost: MoneyAmount = MoneyAmount(amount=5, currency="CAD")
+    total_amount: MoneyAmount = item_price.add(shipping_cost)
+
+    # Display normalized values and equality check.
+    print(item_price.amount, item_price.currency)
+    print(total_amount.amount, total_amount.currency)
+    print("Equal to $20.00 CAD:", item_price == MoneyAmount(amount="20.00", currency="CAD"))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">4.2 Combining <code>frozen=True</code> with <code>slots=True</code></h4>
+                <p>Passing <code>slots=True</code> to <code>@dataclass</code> stores fields in slots instead of a per-instance <code>__dict__</code>. This reduces memory footprint for large collections of objects and prevents accidental creation of new attributes via typos.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from dataclasses import dataclass, field
+
+@dataclass(frozen=True, slots=True)
+class ShipmentLineItem:
+    """Immutable slotted value object representing a single product line item."""
+
+    sku_code: str
+    quantity: int
+    tags: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -&gt; None:
+        """Validate SKU code, positive integer quantity, and normalized tags."""
+        # Reject non-string SKU codes.
+        if not isinstance(self.sku_code, str):
+            raise TypeError("SKU code must be a string.")
+
+        # Normalize whitespace and uppercase the SKU code.
+        normalized_sku: str = self.sku_code.strip().upper()
+
+        # Require a non-empty SKU code.
+        if not normalized_sku:
+            raise ValueError("SKU code cannot be blank.")
+
+        # Reject booleans explicitly because bool is a subclass of int.
+        if isinstance(self.quantity, bool) or not isinstance(self.quantity, int):
+            raise TypeError("Quantity must be a non-boolean integer.")
+
+        # Require a strictly positive item quantity.
+        if self.quantity &lt;= 0:
+            raise ValueError("Quantity must be greater than zero.")
+
+        # Normalize tag strings into a clean tuple of non-empty lowercase labels.
+        normalized_tags: list[str] = []
+
+        for tag in self.tags:
+            if not isinstance(tag, str):
+                raise TypeError("Each tag must be a string.")
+
+            cleaned_tag: str = tag.strip().casefold()
+
+            if cleaned_tag:
+                normalized_tags.append(cleaned_tag)
+
+        # Write normalized fields onto the frozen slotted instance.
+        object.__setattr__(self, "sku_code", normalized_sku)
+        object.__setattr__(self, "tags", tuple(normalized_tags))
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Construct a frozen slotted line item with normalized tags.
+    fragile_line: ShipmentLineItem = ShipmentLineItem(
+        sku_code=" glass-042 ",
+        quantity=2,
+        tags=("Fragile", "  handle-with-care "),
+    )
+
+    # Display normalized attributes.
+    print(fragile_line.sku_code, fragile_line.quantity, fragile_line.tags)</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">4.3 Manual <code>__slots__</code> in Plain Classes</h4>
+                <p>When writing a custom class without <code>@dataclass</code>, declaring <code>__slots__</code> restricts allowed attributes to the listed names. Keep every slot name explicitly declared and avoid creating stray attributes dynamically.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">class CoordinatePoint:
+    """Lightweight slotted point class with strict attribute names and validation."""
+
+    # Declare allowed instance attributes explicitly to avoid per-instance __dict__.
+    __slots__ = ("_latitude", "_longitude")
+
+    def __init__(self, latitude: float, longitude: float) -&gt; None:
+        """Initialize and validate geographic latitude and longitude coordinates."""
+        # Reject booleans and non-numeric values for latitude.
+        if isinstance(latitude, bool) or not isinstance(latitude, (int, float)):
+            raise TypeError("Latitude must be a number.")
+
+        # Reject booleans and non-numeric values for longitude.
+        if isinstance(longitude, bool) or not isinstance(longitude, (int, float)):
+            raise TypeError("Longitude must be a number.")
+
+        lat_value: float = float(latitude)
+        lon_value: float = float(longitude)
+
+        # Enforce valid geographic coordinate bounds.
+        if not (-90.0 &lt;= lat_value &lt;= 90.0):
+            raise ValueError("Latitude must be between -90 and 90 degrees.")
+
+        if not (-180.0 &lt;= lon_value &lt;= 180.0):
+            raise ValueError("Longitude must be between -180 and 180 degrees.")
+
+        # Store validated coordinates in slot attributes.
+        self._latitude: float = lat_value
+        self._longitude: float = lon_value
+
+    @property
+    def latitude(self) -&gt; float:
+        """Return the validated latitude in degrees."""
+        return self._latitude
+
+    @property
+    def longitude(self) -&gt; float:
+        """Return the validated longitude in degrees."""
+        return self._longitude
+
+    def __eq__(self, against: object) -&gt; bool:
+        """Return True when comparing two CoordinatePoint instances with matching values."""
+        # Delegate to NotImplemented for unrelated types.
+        if not isinstance(against, CoordinatePoint):
+            return NotImplemented
+
+        return self._latitude == against._latitude and self._longitude == against._longitude
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create a coordinate point and verify property access.
+    office_location: CoordinatePoint = CoordinatePoint(43.4516, -80.4925)
+    
+    print(office_location.latitude, office_location.longitude)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_03.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Class Architecture &amp; Lifecycle
+                </a>
+                <a href="chapter_05.html" class="btn btn-primary btn-sm">
+                    Chapter 05 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>

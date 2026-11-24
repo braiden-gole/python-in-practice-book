@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://braiden-gole.github.io/python-in-practice/sitemap.xml

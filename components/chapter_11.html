@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <meta name="description" content="Chapter 11: Strategy, Factory, Observer & Command Patterns - Python in Practice by Braiden Gole." />
+        <meta name="author" content="Braiden Gole" />
+        <meta name="robots" content="index, follow" />
+
+        <meta property="og:title" content="Chapter 11: Strategy, Factory, Observer &amp; Command Patterns | Python in Practice | Braiden Gole" />
+        <meta property="og:description" content="Applying Strategy, Factory, Observer, and Command design patterns in Python with strict type validation and clear object boundaries." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://braiden-gole.github.io/python-in-practice/" />
+
+        <title>Chapter 11: Strategy, Factory, Observer &amp; Command Patterns | Python in Practice | Braiden Gole</title>
+
+        <link rel="icon" type="image/x-icon" href="../images/circle.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="../images/circle.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../images/circle.png">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="../images/square.png">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="../main.css">
+    </head>
+    <body class="d-flex flex-column min-vh-100">
+        <!-- Header -->
+        <header class="book-header py-4 text-center">
+            <div class="container d-inline-flex align-items-center justify-content-center gap-3 text-decoration-none">
+                <img src="../svgs/python-logo.svg" width="45" height="45" alt="Python Logo" class="book-logo">
+                <h1 class="h3 fw-bold mb-0 tracking-tight text-body">Python in Practice</h1>
+            </div>
+        </header>
+
+        <div class="container"><hr class="book-divider my-0"></div>
+
+        <!-- Main Content Container -->
+        <main class="container my-5 content-container" style="max-width: 900px;">
+            <article class="chapter-content">
+                <h2 class="display-6 fw-bold mb-3 chapter-title">Chapter 11: Strategy, Factory, Observer &amp; Command Patterns</h2>
+                <div class="lead mb-4">
+                    Classic object-oriented design patterns solve recurring structural and behavioral problems cleanly when paired with Python's typing and encapsulation tools. <strong>Strategy</strong>, <strong>Factory</strong>, <strong>Observer</strong>, and <strong>Command</strong> separate algorithm selection, object creation, event notification, and reversible or queued actions.
+                </div>
+
+                <p><strong>Why patterns matter in practice:</strong> Rather than scattering <code>if/elif</code> branches, ad-hoc callbacks, or direct state mutations across callers, each pattern gives a recurring workflow a clear boundary and explicit invariants.</p>
+
+                <p><strong>Keep implementations lightweight and explicit:</strong> In Python, you do not need heavy boilerplate to express these patterns focused classes, validated inputs, and narrow interfaces keep every role easy to read and test.</p>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Pattern</th>
+                                <th scope="col">Core Intent</th>
+                                <th scope="col">Primary Benefit</th>
+                                <th scope="col">Defensive Pitfall to Avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Strategy</strong></td>
+                                <td>Encapsulates interchangeable algorithms behind a shared interface</td>
+                                <td>Swaps pricing, routing, or sorting logic without editing caller code</td>
+                                <td>Passing unvalidated strategy objects or leaking internal algorithm state</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Factory</strong></td>
+                                <td>Centralizes object creation from keys, configs, or raw inputs</td>
+                                <td>Keeps construction rules consistent and hides concrete class details</td>
+                                <td>Silently falling back to a default when an unknown type key is given</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Observer</strong></td>
+                                <td>Notifies subscribed listeners when a subject emits an event</td>
+                                <td>Decouples event producers from logging, metrics, or audit listeners</td>
+                                <td>Allowing duplicate or non-callable subscribers into the listener list</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Command</strong></td>
+                                <td>Wraps an action and its parameters as an executable object</td>
+                                <td>Supports queuing, logging, auditing, or undoing operations cleanly</td>
+                                <td>Mutating external state before validating command arguments</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mb-4 border shadow-sm">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-layers me-2"></i>Core Principles of Practical Design Patterns</h5>
+                        <ul class="small mb-0">
+                            <li class="mb-2"><strong>Fail explicitly on unknown factory keys or invalid inputs:</strong> Raise clear <code>KeyError</code>, <code>TypeError</code>, or <code>ValueError</code> exceptions instead of masking bad data.</li>
+                            <li class="mb-2"><strong>Protect listener and history collections:</strong> Store internal lists privately and expose defensive copies or controlled registration/execution methods.</li>
+                            <li class="mb-2"><strong>Keep commands self-contained and deterministic:</strong> Validate arguments upfront so executing a command produces predictable results.</li>
+                            <li class="mb-0"><strong>Choose clarity over ceremony:</strong> Introduce a pattern when it removes branching complexity or decouples real responsibilities, not by habit.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">11.1 Strategy and Factory for Routing Rules</h4>
+                <p>A <strong>Strategy</strong> encapsulates how a routing fee is computed, while a <strong>Factory</strong> builds the requested strategy instance from a normalized mode name.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from decimal import Decimal, InvalidOperation
+
+class RoutingFeeStrategy:
+    """Base strategy calculating a validated routing fee from parcel weight."""
+
+    @staticmethod
+    def _validate_positive_decimal(number: object, label: str) -> Decimal:
+        """Validate and normalize a strictly positive finite Decimal value."""
+        # Reject booleans explicitly because bool subclasses int in Python.
+        if isinstance(number, bool):
+            raise TypeError(f"{label} cannot be a boolean.")
+
+        # Convert Decimal or string/numeric values safely into Decimal.
+        try:
+            parsed_decimal: Decimal = (
+                number
+                if isinstance(number, Decimal)
+                else Decimal(str(number).strip())
+            )
+        except (InvalidOperation, TypeError) as parse_error:
+            raise ValueError(f"Invalid Decimal for {label}: {number}.") from parse_error
+
+        # Reject NaN, Infinity, zero, or negative numbers.
+        if not parsed_decimal.is_finite() or parsed_decimal <= Decimal("0.00"):
+            raise ValueError(f"{label} must be a positive finite Decimal.")
+
+        # Return validated Decimal value.
+        return parsed_decimal
+
+    def compute_routing_fee(self, weight_kg: Decimal) -> Decimal:
+        """Compute routing fee for a validated positive weight in kilograms."""
+        # Validate parcel weight before calculating strategy fee.
+        weight: Decimal = self._validate_positive_decimal(weight_kg, "parcel_weight_kg")
+
+        # Return baseline routing fee proportional to parcel weight.
+        return weight * Decimal("1.25")
+
+class PriorityLaneStrategy(RoutingFeeStrategy):
+    """Strategy adding a fixed priority lane surcharge onto the base weight fee."""
+
+    def __init__(self, lane_surcharge: Decimal = Decimal("9.50")) -> None:
+        """Initialize and validate a non-negative lane surcharge."""
+        # Reject booleans and non-Decimal surcharge values.
+        if isinstance(lane_surcharge, bool) or not isinstance(lane_surcharge, Decimal):
+            raise TypeError("lane_surcharge must be a Decimal.")
+
+        # Reject NaN, Infinity, or negative surcharges.
+        if not lane_surcharge.is_finite() or lane_surcharge < Decimal("0.00"):
+            raise ValueError("lane_surcharge must be a finite non-negative Decimal.")
+
+        # Store validated lane surcharge on the strategy instance.
+        self._lane_surcharge: Decimal = lane_surcharge
+
+    def compute_routing_fee(self, parcel_weight_kg: Decimal) -> Decimal:
+        """Compute base routing fee plus the configured priority lane surcharge."""
+        # Calculate base weight fee via parent method and add lane surcharge.
+        base_fee: Decimal = super().compute_routing_fee(parcel_weight_kg)
+
+        return base_fee + self._lane_surcharge
+
+class RoutingStrategyFactory:
+    """Factory creating validated routing fee strategies from a mode identifier."""
+
+    @staticmethod
+    def create_strategy(routing_mode: str) -> RoutingFeeStrategy:
+        """Instantiate a routing strategy for a normalized mode name."""
+        # Reject non-string routing mode names defensively.
+        if not isinstance(routing_mode, str):
+            raise TypeError("routing_mode must be a string.")
+
+        # Normalize casing and whitespace before matching supported modes.
+        normalized_mode: str = routing_mode.strip().lower()
+
+        if not normalized_mode:
+            raise ValueError("routing_mode cannot be blank.")
+
+        # Instantiate matching strategy or raise KeyError for unknown modes.
+        if normalized_mode == "standard":
+            return RoutingFeeStrategy()
+
+        if normalized_mode == "priority":
+            return PriorityLaneStrategy()
+
+        raise KeyError(f"Unsupported routing_mode: '{normalized_mode}'.")
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Create strategies via factory and compare routing fees for a 6.0 kg parcel.
+    standard_strategy: RoutingFeeStrategy = RoutingStrategyFactory.create_strategy(" STANDARD ")
+    priority_strategy: RoutingFeeStrategy = RoutingStrategyFactory.create_strategy("priority")
+
+    weight: Decimal = Decimal("6.0")
+
+    print("Standard fee:", standard_strategy.compute_routing_fee(weight))
+    print("Priority fee:", priority_strategy.compute_routing_fee(weight))</code></pre>
+
+                <h4 class="fw-bold mt-4 mb-3 chapter-title">11.2 Observer and Command for Auditable Operations</h4>
+                <p>The <strong>Observer</strong> pattern lets a publisher broadcast state events to registered listeners, while a <strong>Command</strong> encapsulates an operation and notifies observers when executed.</p>
+
+                <pre class="font-monospace small mb-3"><code class="language-python">from typing import Callable
+
+ShipmentEventListener = Callable[[str, str], None]
+
+class ShipmentEventBus:
+    """Observer hub managing unique listeners and publishing shipment event messages."""
+
+    def __init__(self) -> None:
+        """Initialize an empty list of registered event listeners."""
+        # Store registered listener callables privately.
+        self._listeners: list[ShipmentEventListener] = []
+
+    def subscribe(self, listener: ShipmentEventListener) -> None:
+        """Register a callable listener if not already subscribed."""
+        # Reject non-callable objects defensively.
+        if not callable(listener):
+            raise TypeError("listener must be callable.")
+
+        # Prevent duplicate subscriptions of the same listener object.
+        if listener not in self._listeners:
+            self._listeners.append(listener)
+
+    def publish(self, shipment_code: str, event_detail: str) -> None:
+        """Validate event payload and notify every subscribed listener."""
+        # Reject non-string or blank shipment codes.
+        if not isinstance(shipment_code, str) or not shipment_code.strip():
+            raise ValueError("shipment_code must be a non-empty string.")
+
+        # Reject non-string or blank event details.
+        if not isinstance(event_detail, str) or not event_detail.strip():
+            raise ValueError("event_detail must be a non-empty string.")
+
+        # Normalize payload fields before notifying listeners.
+        normalized_code: str = shipment_code.strip().upper()
+        cleaned_detail: str = " ".join(event_detail.strip().split())
+
+        # Notify each registered listener in subscription order.
+        for listener in list(self._listeners):
+            listener(normalized_code, cleaned_detail)
+
+class FlagShipmentCommand:
+    """Command object validating and executing a shipment flag operation."""
+
+    def __init__(self, shipment_code: str, flag_reason: str, event_bus: ShipmentEventBus) -> None:
+        """Initialize and validate command parameters and event bus collaborator."""
+        # Reject non-string or blank shipment codes.
+        if not isinstance(shipment_code, str) or not shipment_code.strip():
+            raise ValueError("shipment_code must be a non-empty string.")
+
+        # Reject non-string or blank flag reasons.
+        if not isinstance(flag_reason, str) or not flag_reason.strip():
+            raise ValueError("flag_reason must be a non-empty string.")
+
+        # Reject objects that are not ShipmentEventBus instances.
+        if not isinstance(event_bus, ShipmentEventBus):
+            raise TypeError("event_bus must be a ShipmentEventBus instance.")
+
+        # Store normalized command arguments and event bus reference.
+        self._shipment_code: str = shipment_code.strip().upper()
+        self._flag_reason: str = " ".join(flag_reason.strip().split())
+        self._event_bus: ShipmentEventBus = event_bus
+
+    def execute(self) -> str:
+        """Execute the command and publish a flag event to subscribers."""
+        # Build status message and publish event through the observer bus.
+        status_message: str = f"flagged ({self._flag_reason})"
+
+        self._event_bus.publish(self._shipment_code, status_message)
+
+        # Return confirmation string for caller inspection.
+        return f"{self._shipment_code}: {status_message}"
+
+# Run this block only when executing the file directly rather than importing it.
+if __name__ == "__main__":
+    # Wire an observer listener, create a command, and execute it.
+    audit_entries: list[str] = []
+
+    def record_audit_event(code: str, detail: str) -> None:
+        """Append formatted shipment audit events into audit_entries."""
+        # Record normalized event into the audit list.
+        audit_entries.append(f"{code} -> {detail}")
+
+    bus: ShipmentEventBus = ShipmentEventBus()
+    bus.subscribe(record_audit_event)
+
+    flag_command: FlagShipmentCommand = FlagShipmentCommand(
+        shipment_code=" shp-710 ",
+        flag_reason=" address_mismatch ",
+        event_bus=bus,
+    )
+
+    print("Command result:", flag_command.execute())
+    print("Audit log:", audit_entries)</code></pre>
+
+            </article>
+
+            <!-- Chapter Navigation Footer -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top">
+                <a href="chapter_10.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Subclasses, Decorators &amp; Metaclasses
+                </a>
+                <a href="chapter_12.html" class="btn btn-primary btn-sm">
+                    Chapter 12 <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer text-center py-4 mt-auto">
+            <div class="container">
+                <p class="mb-1 small">&copy; 2026 Braiden Gole. Python in Practice. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap JS Bundle -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
+
+        <!-- Prism.js Core & Python Grammar -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+        <script src="../script.js"></script>
+    </body>
+</html>
